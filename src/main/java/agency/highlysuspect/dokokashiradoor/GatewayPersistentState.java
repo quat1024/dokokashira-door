@@ -1,4 +1,4 @@
-package agency.highlysuspect.anywheredoor;
+package agency.highlysuspect.dokokashiradoor;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -31,14 +31,13 @@ public class GatewayPersistentState extends PersistentState {
 	private final Util.RandomSelectableMap<BlockPos, Gateway> gateways;
 	private final Util.RandomSelectableSet<BlockPos> checkDoors;
 	
-	//public static final Codec<GatewayPersistentState> CODEC = Gateway.CODEC.listOf().xmap(GatewayPersistentState::new, GatewayPersistentState::getGateways);
 	public static final Codec<GatewayPersistentState> CODEC = RecordCodecBuilder.create(i -> i.group(
 		Gateway.CODEC.listOf().fieldOf("gateways").forGetter(gps -> gps.gateways.asList()),
 		BlockPos.CODEC.listOf().fieldOf("checkDoors").forGetter(gps -> gps.checkDoors.asList())
 	).apply(i, GatewayPersistentState::new));
 	
 	public static GatewayPersistentState getFor(ServerWorld world) {
-		return world.getPersistentStateManager().getOrCreate(GatewayPersistentState::fromNbt, GatewayPersistentState::new, "anywheredoor-gateways");
+		return world.getPersistentStateManager().getOrCreate(GatewayPersistentState::fromNbt, GatewayPersistentState::new, "dokokashira-doors");
 	}
 	
 	public void tick(ServerWorld world) {

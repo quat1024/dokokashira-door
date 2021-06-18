@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "anywheredoor",
+  "id": "dokokashira_door",
   "version": "${version}",
 
-  "name": "Anywhere Door",
+  "name": "Dokokashira Door",
   "description": "\"Enhances\" vanilla doors",
   "authors": [
     "quaternary"
@@ -18,11 +18,11 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "agency.highlysuspect.anywheredoor.Init"
+      "agency.highlysuspect.dokokashiradoor.Init"
     ]
   },
   "mixins": [
-    "anywheredoor.mixins.json"
+    "dokokashira_door.mixins.json"
   ],
 
   "depends": {

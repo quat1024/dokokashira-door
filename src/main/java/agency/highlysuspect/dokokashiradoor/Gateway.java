@@ -1,15 +1,12 @@
-package agency.highlysuspect.anywheredoor;
+package agency.highlysuspect.dokokashiradoor;
 
-import com.google.common.collect.UnmodifiableIterator;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
-import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.enums.DoorHinge;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;

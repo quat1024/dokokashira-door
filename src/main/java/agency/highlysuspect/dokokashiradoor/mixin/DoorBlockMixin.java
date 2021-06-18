@@ -1,7 +1,7 @@
-package agency.highlysuspect.anywheredoor.mixin;
+package agency.highlysuspect.dokokashiradoor.mixin;
 
-import agency.highlysuspect.anywheredoor.Gateway;
-import agency.highlysuspect.anywheredoor.GatewayPersistentState;
+import agency.highlysuspect.dokokashiradoor.Gateway;
+import agency.highlysuspect.dokokashiradoor.GatewayPersistentState;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
@@ -15,9 +15,7 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-import org.spongepowered.asm.mixin.Intrinsic;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.SoftOverride;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;

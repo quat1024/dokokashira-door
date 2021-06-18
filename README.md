@@ -1,5 +1,7 @@
-# Anywhere Door
+# Dokokashira Door
 
-"Enhances" vanilla doors. For Modfest 1.17.
+"Enhances" vanilla doors.
 
-based off a silly editing gimmick from *PiroPito First Playthrough of Minecraft*
+For Modfest 1.17.
+
+(based off a silly editing gimmick from *PiroPito First Playthrough of Minecraft*, which I'm hearing is a Doraemon reference)

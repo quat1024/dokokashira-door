@@ -1,4 +1,4 @@
-package agency.highlysuspect.anywheredoor;
+package agency.highlysuspect.dokokashiradoor;
 
 import com.mojang.serialization.Codec;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
