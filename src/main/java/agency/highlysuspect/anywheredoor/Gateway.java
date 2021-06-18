@@ -8,8 +8,10 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.entity.SignBlockEntity;
+import net.minecraft.block.enums.DoorHinge;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -64,7 +66,7 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 			frame.equals(other.frame);
 	}
 	
-	public static @Nullable Gateway readFromWorld(World world, BlockPos doorTopPosMut) {
+	public static @Nullable Gateway readFromWorld(ServerWorld world, BlockPos doorTopPosMut) {
 		BlockPos doorTopPos = doorTopPosMut.toImmutable();
 		
 		BlockState doorTopState = world.getBlockState(doorTopPos);
@@ -131,6 +133,14 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		//Send the player off
 		player.networkHandler.requestTeleport(destPos.x, destPos.y, destPos.z, player.getYaw() + yawAdd, player.getPitch());
 		
+		//Sneakily update the hinge on the destination door to match the hinge of the source door
+		// (makes it look better)
+		BlockState leftFromDoorState = world.getBlockState(leftFrom.doorTopPos);
+		DoorHinge hinge = leftFromDoorState.get(DoorBlock.HINGE);
+		world.setBlockState(doorTopPos, world.getBlockState(doorTopPos).with(DoorBlock.HINGE, hinge));
+		//world.setBlockState(doorTopPos.down(), world.getBlockState(doorTopPos.down()).with(DoorBlock.HINGE, hinge));
+		
+		//Open the destination door
 		BlockState doorState = world.getBlockState(doorTopPos);
 		doorBlock.setOpen(null, world, doorState, doorTopPos, true);
 	}

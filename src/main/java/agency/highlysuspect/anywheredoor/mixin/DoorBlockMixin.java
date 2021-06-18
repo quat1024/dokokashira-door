@@ -2,6 +2,7 @@ package agency.highlysuspect.anywheredoor.mixin;
 
 import agency.highlysuspect.anywheredoor.Gateway;
 import agency.highlysuspect.anywheredoor.GatewayPersistentState;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.enums.DoubleBlockHalf;
@@ -12,16 +13,22 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Intrinsic;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.SoftOverride;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(DoorBlock.class)
-public class DoorBlockMixin {
+public class DoorBlockMixin extends Block {
+	public DoorBlockMixin(Settings settings) {
+		super(settings);
+		throw new AssertionError("Dummy constructor");
+	}
+	
 	@Inject(
 		method = "onUse",
 		at = @At(
@@ -42,12 +49,12 @@ public class DoorBlockMixin {
 			//TODO: Check that the player is standing very close to the door and looking directly at it
 			
 			//If the player is interacting with a gateway
-			Gateway thisGateway = Gateway.readFromWorld(world, pos);
+			Gateway thisGateway = Gateway.readFromWorld(sworld, pos);
 			if(thisGateway == null) return;
 			
 			GatewayPersistentState gps = GatewayPersistentState.getFor(sworld);
 			gps.addGateway(thisGateway);
-			gps.validateLoadedGateways(sworld);
+			//gps.validateLoadedGateways(sworld);
 			
 			//find a matching gateway
 			@Nullable Gateway other = gps.findDifferentGateway(thisGateway, world.random);
@@ -55,6 +62,14 @@ public class DoorBlockMixin {
 			//and teleport them to it
 			if(other == null) return;
 			other.arrive(world, thisGateway, splayer);
+		}
+	}
+	
+	@Override
+	//@SoftOverride (Mixin bug? This method absolutely exists in AbstractBlock)
+	public void onBlockAdded(BlockState state, World world, BlockPos pos, BlockState oldState, boolean notify) {
+		if(!world.isClient && world instanceof ServerWorld sworld && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER) {
+			GatewayPersistentState.getFor(sworld).addCheckdoor(pos.toImmutable());
 		}
 	}
 }
