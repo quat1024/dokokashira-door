@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "anywheredoor",
+  "version": "${version}",
+
+  "name": "Anywhere Door",
+  "description": "\"Enhances\" vanilla doors",
+  "authors": [
+    "quaternary"
+  ],
+  "contact": {
+    "homepage": "https://highlysuspect.agency/"
+  },
+
+  "license": "LGPL-3.0-or-later",
+  "icon": "assets/modid/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "agency.highlysuspect.anywheredoor.Init"
+    ]
+  },
+  "mixins": [
+    "anywheredoor.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.11.3",
+    "fabric": "*",
+    "minecraft": "1.17.x",
+    "java": ">=16"
+  },
+  "suggests": {
+    "that-you-switch-to-quilt-as-soon-as-its-available": "*"
+  }
+}

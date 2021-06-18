@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "agency.highlysuspect.anywheredoor.mixin",
+  "compatibilityLevel": "JAVA_16",
+  "mixins": [
+		"DoorBlockMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
