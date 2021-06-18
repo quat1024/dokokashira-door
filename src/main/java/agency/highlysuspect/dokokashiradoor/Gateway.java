@@ -1,5 +1,6 @@
 package agency.highlysuspect.dokokashiradoor;
 
+import com.google.common.base.Preconditions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -32,6 +33,8 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		).apply(i, Proto::new));
 		
 		public static Proto lift(Gateway gateway) {
+			Preconditions.checkNotNull(gateway);
+			
 			return new Proto(
 				gateway.doorTopPos,
 				Registry.BLOCK.getId(gateway.doorBlock),
@@ -63,12 +66,17 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 			frame.equals(other.frame);
 	}
 	
+	public @Nullable Gateway recreate(ServerWorld world) {
+		return readFromWorld(world, doorTopPos);
+	}
+	
 	public static @Nullable Gateway readFromWorld(ServerWorld world, BlockPos doorTopPosMut) {
 		BlockPos doorTopPos = doorTopPosMut.toImmutable();
 		
 		BlockState doorTopState = world.getBlockState(doorTopPos);
 		Block maybeDoorBlock = doorTopState.getBlock();
-		if(!(maybeDoorBlock instanceof DoorBlock doorBlock)) return null; //TODO tag check for "opaque doors"
+		if(!(maybeDoorBlock instanceof DoorBlock doorBlock)) return null;
+		if(!(Init.OPAQUE_DOORS.contains(doorBlock))) return null;
 		
 		//"facing" -> the direction the player faces, when they place a door
 		//The *opposite* of facing, is the block edge that the door rests on.

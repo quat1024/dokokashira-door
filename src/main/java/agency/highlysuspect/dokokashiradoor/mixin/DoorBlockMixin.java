@@ -55,7 +55,7 @@ public class DoorBlockMixin extends Block {
 			//gps.validateLoadedGateways(sworld);
 			
 			//find a matching gateway
-			@Nullable Gateway other = gps.findDifferentGateway(thisGateway, world.random);
+			@Nullable Gateway other = gps.findDifferentGateway(sworld, thisGateway, world.random);
 			
 			//and teleport them to it
 			if(other == null) return;
