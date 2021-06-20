@@ -19,7 +19,10 @@
   "entrypoints": {
     "main": [
       "agency.highlysuspect.dokokashiradoor.Init"
-    ]
+    ],
+		"client": [
+			"agency.highlysuspect.dokokashiradoor.client.DokoClientNet"
+		]
   },
   "mixins": [
     "dokokashira_door.mixins.json"

@@ -1,7 +1,10 @@
 package agency.highlysuspect.dokokashiradoor;
 
-import agency.highlysuspect.dokokashiradoor.util.GatewayList;
+import agency.highlysuspect.dokokashiradoor.net.DokoServerNet;
+import agency.highlysuspect.dokokashiradoor.util.PlayerEntityExt;
+import agency.highlysuspect.dokokashiradoor.util.GatewayMap;
 import agency.highlysuspect.dokokashiradoor.util.RandomSelectableSet;
+import agency.highlysuspect.dokokashiradoor.util.ServerPlayNetworkHandlerExt;
 import agency.highlysuspect.dokokashiradoor.util.Util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -9,10 +12,11 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.enums.DoubleBlockHalf;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.server.world.ServerChunkManager;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.chunk.ChunkManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -20,23 +24,29 @@ import java.util.stream.Collectors;
 
 public class GatewayPersistentState extends PersistentState {
 	public GatewayPersistentState() {
-		gateways = new GatewayList();
-		checkDoors = new RandomSelectableSet<>();
+		gateways = new GatewayMap();
+		knownDoors = new RandomSelectableSet<>();
 	}
 	
 	//Deserialization constructor
-	private GatewayPersistentState(GatewayList gateways, RandomSelectableSet<BlockPos> checkDoors) {
-		//Mutable copy
+	private GatewayPersistentState(GatewayMap gateways, RandomSelectableSet<BlockPos> knownDoors) {
 		this.gateways = gateways;
-		this.checkDoors = checkDoors;
+		this.knownDoors = knownDoors;
+		
+		gatewayChecksum = gateways.checksum();
 	}
 	
-	private final GatewayList gateways;
-	private final RandomSelectableSet<BlockPos> checkDoors;
+	public final GatewayMap gateways;
+	public int gatewayChecksum;
+	
+	private final GatewayMap gatewaysJustAdded = new GatewayMap();
+	private final GatewayMap gatewaysJustRemoved = new GatewayMap();
+	
+	private final RandomSelectableSet<BlockPos> knownDoors;
 	
 	public static final Codec<GatewayPersistentState> CODEC = RecordCodecBuilder.create(i -> i.group(
-		GatewayList.CODEC.fieldOf("gateways").forGetter(gps -> gps.gateways),
-		RandomSelectableSet.codec(BlockPos.CODEC).fieldOf("checkDoors").forGetter(gps -> gps.checkDoors)
+		GatewayMap.CODEC.fieldOf("gateways").forGetter(gps -> gps.gateways),
+		RandomSelectableSet.codec(BlockPos.CODEC).fieldOf("knownDoors").forGetter(gps -> gps.knownDoors)
 	).apply(i, GatewayPersistentState::new));
 	
 	public static GatewayPersistentState getFor(ServerWorld world) {
@@ -44,81 +54,139 @@ public class GatewayPersistentState extends PersistentState {
 	}
 	
 	public void tick(ServerWorld world) {
-		ServerChunkManager cm = world.getChunkManager();
+		ChunkManager cm = world.getChunkManager();
 		
-		checkDoors.trim();
-		
-		//Pick a random prospective door.
-		@Nullable BlockPos removedCheckdoor = checkDoors.removeRandomIf(world.random, pos -> {
-			//If the prospective door is not loaded, don't worry about it right now
+		upkeepDoors(world, cm);
+		upkeepGateways(world, cm);
+		sendUpdatePackets(world);
+	}
+	
+	private void upkeepDoors(ServerWorld world, ChunkManager cm) {
+		knownDoors.removeIf(pos -> {
 			if(!Util.isPositionAndNeighborsLoaded(cm, pos)) return false;
 			
-			//If the prospective door is loaded, make sure it's actually the top half of a door.
-			BlockState state = world.getBlockState(pos);
-			if(!(state.getBlock() instanceof DoorBlock) || state.get(DoorBlock.HALF) != DoubleBlockHalf.UPPER) {
-				return true;
+			//Remove knownDoors that aren't doors anymore
+			BlockState here = world.getBlockState(pos);
+			if(!(here.getBlock() instanceof DoorBlock)) return true;
+			if(here.get(DoorBlock.HALF) != DoubleBlockHalf.UPPER) return true;
+			
+			//Check if there is a gateway at this door
+			Gateway inWorld = Gateway.readFromWorld(world, pos);
+			if(inWorld != null && !gateways.containsValue(inWorld)) {
+				putGateway(inWorld);
 			}
 			
-			//If it's the top half of a door, try to upgrade it to a gateway.
-			@Nullable Gateway g = Gateway.readFromWorld(world, pos);
-			if(g != null) {
-				addGateway(g);
-				return true;
-			}
-			
-			//Maybe a gateway will crop up here later.
 			return false;
 		});
-		
-		//Pick a random gateway.
-		@Nullable Gateway removedGateway = gateways.removeRandomIf(world.random, gateway -> {
-			BlockPos pos = gateway.doorTopPos();
+	}
+	
+	private void upkeepGateways(ServerWorld world, ChunkManager cm) {
+		//This sucks a lot, sorry.
+		//I might modify the map while iterating over it, so I copy all the keys.
+		//I don't think fastutil maps throw CMEs in the name of performance, and I don't wanna find out what happens.
+		for(BlockPos pos : new ArrayList<>(gateways.keySet())) {
+			if(!Util.isPositionAndNeighborsLoaded(cm, pos)) continue;
 			
-			//If the gateway is not loaded, don't worry about it right now.
-			if(!Util.isPositionAndNeighborsLoaded(cm, pos)) return false;
+			Gateway gateway = gateways.getGatewayAt(pos);
+			assert gateway != null; //Map doesn't contain null values
 			
-			//If the gateway is loaded, make sure the gateway still exists in the world.
+			//If the gateway doesn't exist in the world anymore, remove it
 			Gateway fromWorld = gateway.recreate(world);
 			if(fromWorld == null) {
-				//The door might still be intact, so add to checkdoors.
-				//(If the door is not intact, the checkdoors procedure will remove it naturally.)
-				addCheckdoor(pos);
-				return true;
+				removeGatewayAt(pos);
+				continue;
 			}
 			
-			//Also check that my model of the gateway is still correct.
-			if(!fromWorld.equals(gateway)) {
-				addGateway(fromWorld);
-				return false;
+			//If my model of the gateway is out-of-date, update it
+			if(!gateway.equals(fromWorld)) {
+				putGateway(fromWorld);
 			}
-			
-			//Looks good for now
-			return false;
-		});
-		
-		if(removedCheckdoor != null || removedGateway != null) {
-			markDirty();
 		}
 	}
 	
-	public void addGateway(Gateway gateway) {
-		gateways.add(gateway);
+	private void sendUpdatePackets(ServerWorld world) {
+		if(!gatewaysJustAdded.isEmpty() || !gatewaysJustRemoved.isEmpty()) {
+			//TODO: Better delta update logic.
+			// 
+			for(ServerPlayerEntity player : world.getPlayers()) {
+				ServerPlayNetworkHandlerExt ext = ServerPlayNetworkHandlerExt.cast(player.networkHandler);
+				if(ext.dokodoor$getGatewayChecksum() != gatewayChecksum) {
+					DokoServerNet.sendDeltaUpdate(player, gatewaysJustAdded, gatewaysJustRemoved);
+				}
+			}
+			
+			gatewaysJustAdded.clear();
+			gatewaysJustRemoved.clear();
+		}
+	}
+	
+	private void putGateway(Gateway gateway) {
+		gateways.addGateway(gateway);
+		
+		gatewaysJustAdded.addGateway(gateway);
+		gatewaysJustRemoved.removeGateway(gateway);
+		
+		gatewayChecksum = gateways.checksum(); //TODO delta update
 		markDirty();
 	}
 	
-	public void removeGateway(Gateway gateway) {
-		gateways.remove(gateway);
-		checkDoors.add(gateway.doorTopPos());
+	private void removeGatewayAt(BlockPos pos) {
+		removeGateway(gateways.getGatewayAt(pos));
+	}
+	
+	private void removeGateway(Gateway gateway) {
+		gateways.removeGateway(gateway);
+		
+		gatewaysJustAdded.removeGateway(gateway);
+		gatewaysJustRemoved.addGateway(gateway);
+		
+		gatewayChecksum = gateways.checksum(); //TODO delta update
 		markDirty();
 	}
 	
-	public void addCheckdoor(BlockPos pos) {
-		checkDoors.add(pos);
-		markDirty();
+	public void doorNeighborUpdate(ServerWorld world, BlockPos doorTopPos) {
+		knownDoors.add(doorTopPos);
+		
+		if(Util.isPositionAndNeighborsLoaded(world.getChunkManager(), doorTopPos)) {
+			Gateway g = Gateway.readFromWorld(world, doorTopPos);
+			if(g != null && !g.equals(gateways.getGatewayAt(doorTopPos))) {
+				putGateway(g);
+			}
+		}
 	}
 	
+	public boolean playerUseDoor(ServerWorld world, BlockPos doorTopPos, ServerPlayerEntity player) {
+		//If the player is interacting with a gateway
+		Gateway thisGateway = Gateway.readFromWorld(world, doorTopPos);
+		if(thisGateway == null) return false;
+		
+		putGateway(thisGateway);
+		
+		//find a matching gateway
+		Random random = new Random();
+		random.setSeed(PlayerEntityExt.cast(player).dokodoor$getGatewayRandomSeed());
+		@Nullable Gateway other = findDifferentGateway(world, thisGateway, random);
+		
+		if(other == null) return false;
+		
+		//tp them to it
+		other.arrive(world, thisGateway, player);
+		
+		int newSeed = world.random.nextInt();
+		PlayerEntityExt.cast(player).dokodoor$setGatewayRandomSeed(newSeed);
+		DokoServerNet.sendRandomSeed(player, newSeed);
+		
+		return true;
+	}
+	
+	//TODO move this into GatewayMap or something?
+	// Clients need to replicate this behavior for accurate prediction
 	public @Nullable Gateway findDifferentGateway(ServerWorld world, Gateway gateway, Random random) {
-		List<Gateway> otherGateways = gateways.stream().filter(other -> other.equalButDifferentPositions(gateway)).collect(Collectors.toList());
+		List<Gateway> otherGateways = gateways
+			.toSortedList()
+			.stream()
+			.filter(other -> other.equalButDifferentPositions(gateway))
+			.collect(Collectors.toList());
 		
 		for(int tries = 0; tries < 10; tries++) {
 			if(otherGateways.size() == 0) return null;

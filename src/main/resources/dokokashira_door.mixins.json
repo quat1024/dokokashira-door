@@ -4,8 +4,14 @@
   "package": "agency.highlysuspect.dokokashiradoor.mixin",
   "compatibilityLevel": "JAVA_16",
   "mixins": [
-		"DoorBlockMixin"
+		"DoorBlockMixin",
+		"PlayerEntityMixin",
+		"ServerPlayNetworkHandlerMixin",
+		"ServerPlayerEntityMixin"
   ],
+	"client": [
+		"client.ClientPlayNetworkHandlerMixin"
+	],
   "injectors": {
     "defaultRequire": 1
   }

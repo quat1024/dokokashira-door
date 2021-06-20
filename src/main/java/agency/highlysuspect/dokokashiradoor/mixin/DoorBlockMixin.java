@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(DoorBlock.class)
@@ -37,37 +38,26 @@ public class DoorBlockMixin extends Block {
 		)
 	)
 	private void whenUsed(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit, CallbackInfoReturnable<ActionResult> cir) {
-		if(player != null &&
-			!world.isClient() &&
-			world instanceof ServerWorld sworld &&
-			player instanceof ServerPlayerEntity splayer &&
-			state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER &&
-			state.get(DoorBlock.OPEN)
+		if(player != null && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER && state.get(DoorBlock.OPEN)
 		) {
-			//TODO: Check that the player is standing very close to the door and looking directly at it
+			if(!world.isClient() && world instanceof ServerWorld sworld && player instanceof ServerPlayerEntity splayer) {
+				//TODO: use this bool to suppress the sound of the door
+				boolean todo = GatewayPersistentState.getFor(sworld).playerUseDoor(sworld, pos, splayer);
+			}
 			
-			//If the player is interacting with a gateway
-			Gateway thisGateway = Gateway.readFromWorld(sworld, pos);
-			if(thisGateway == null) return;
-			
-			GatewayPersistentState gps = GatewayPersistentState.getFor(sworld);
-			gps.addGateway(thisGateway);
-			//gps.validateLoadedGateways(sworld);
-			
-			//find a matching gateway
-			@Nullable Gateway other = gps.findDifferentGateway(sworld, thisGateway, world.random);
-			
-			//and teleport them to it
-			if(other == null) return;
-			other.arrive(world, thisGateway, splayer);
+			if(world.isClient()) {
+				//TODO: client-side predict teleportation
+			}
 		}
 	}
 	
-	@Override
-	//@SoftOverride (Mixin bug? This method absolutely exists in AbstractBlock)
-	public void onBlockAdded(BlockState state, World world, BlockPos pos, BlockState oldState, boolean notify) {
+	@Inject(
+		method = "neighborUpdate",
+		at = @At("HEAD")
+	)
+	private void whenNeighborUpdate(BlockState state, World world, BlockPos pos, Block block, BlockPos fromPos, boolean notify, CallbackInfo ci) {
 		if(!world.isClient && world instanceof ServerWorld sworld && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER) {
-			GatewayPersistentState.getFor(sworld).addCheckdoor(pos.toImmutable());
+			GatewayPersistentState.getFor(sworld).doorNeighborUpdate(sworld, pos.toImmutable());
 		}
 	}
 }

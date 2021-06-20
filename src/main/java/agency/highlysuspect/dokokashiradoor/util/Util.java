@@ -5,7 +5,6 @@ import com.mojang.serialization.Codec;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 import net.minecraft.world.chunk.ChunkManager;
 
 public class Util {
@@ -29,7 +28,7 @@ public class Util {
 	 * Check that this position, as well as its four neighboring blocks, are loaded
 	 */
 	public static boolean isPositionAndNeighborsLoaded(ChunkManager cm, BlockPos pos) {
-		return allLoaded(cm, pos, pos.offset(Direction.NORTH), pos.offset(Direction.EAST), pos.offset(Direction.SOUTH), pos.offset(Direction.WEST));
+		return allLoaded(cm, pos, pos.north(), pos.east(), pos.south(), pos.west());
 	}
 	
 	public static boolean allLoaded(ChunkManager cm, BlockPos... positions) {
