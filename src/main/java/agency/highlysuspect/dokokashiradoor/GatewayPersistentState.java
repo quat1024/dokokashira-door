@@ -1,5 +1,8 @@
 package agency.highlysuspect.dokokashiradoor;
 
+import agency.highlysuspect.dokokashiradoor.util.GatewayList;
+import agency.highlysuspect.dokokashiradoor.util.RandomSelectableSet;
+import agency.highlysuspect.dokokashiradoor.util.Util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.BlockState;
@@ -10,8 +13,6 @@ import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkStatus;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -19,23 +20,23 @@ import java.util.stream.Collectors;
 
 public class GatewayPersistentState extends PersistentState {
 	public GatewayPersistentState() {
-		gateways = new Util.RandomSelectableMap<>();
-		checkDoors = new Util.RandomSelectableSet<>();
+		gateways = new GatewayList();
+		checkDoors = new RandomSelectableSet<>();
 	}
 	
 	//Deserialization constructor
-	private GatewayPersistentState(List<Gateway> gateways, List<BlockPos> checkDoors) {
+	private GatewayPersistentState(GatewayList gateways, RandomSelectableSet<BlockPos> checkDoors) {
 		//Mutable copy
-		this.gateways = new Util.RandomSelectableMap<>(gateways, Gateway::doorTopPos);
-		this.checkDoors = new Util.RandomSelectableSet<>(checkDoors);
+		this.gateways = gateways;
+		this.checkDoors = checkDoors;
 	}
 	
-	private final Util.RandomSelectableMap<BlockPos, Gateway> gateways;
-	private final Util.RandomSelectableSet<BlockPos> checkDoors;
+	private final GatewayList gateways;
+	private final RandomSelectableSet<BlockPos> checkDoors;
 	
 	public static final Codec<GatewayPersistentState> CODEC = RecordCodecBuilder.create(i -> i.group(
-		Gateway.CODEC.listOf().fieldOf("gateways").forGetter(gps -> gps.gateways.asList()),
-		BlockPos.CODEC.listOf().fieldOf("checkDoors").forGetter(gps -> gps.checkDoors.asList())
+		GatewayList.CODEC.fieldOf("gateways").forGetter(gps -> gps.gateways),
+		RandomSelectableSet.codec(BlockPos.CODEC).fieldOf("checkDoors").forGetter(gps -> gps.checkDoors)
 	).apply(i, GatewayPersistentState::new));
 	
 	public static GatewayPersistentState getFor(ServerWorld world) {
@@ -45,8 +46,10 @@ public class GatewayPersistentState extends PersistentState {
 	public void tick(ServerWorld world) {
 		ServerChunkManager cm = world.getChunkManager();
 		
+		checkDoors.trim();
+		
 		//Pick a random prospective door.
-		@Nullable BlockPos removedCheckdoor = checkDoors.randomRemoveIf(world.random, pos -> {
+		@Nullable BlockPos removedCheckdoor = checkDoors.removeRandomIf(world.random, pos -> {
 			//If the prospective door is not loaded, don't worry about it right now
 			if(!Util.isPositionAndNeighborsLoaded(cm, pos)) return false;
 			
@@ -68,7 +71,9 @@ public class GatewayPersistentState extends PersistentState {
 		});
 		
 		//Pick a random gateway.
-		@Nullable Gateway removedGateway = gateways.randomRemoveIf(world.random, (pos, gateway) -> {
+		@Nullable Gateway removedGateway = gateways.removeRandomIf(world.random, gateway -> {
+			BlockPos pos = gateway.doorTopPos();
+			
 			//If the gateway is not loaded, don't worry about it right now.
 			if(!Util.isPositionAndNeighborsLoaded(cm, pos)) return false;
 			
@@ -83,7 +88,7 @@ public class GatewayPersistentState extends PersistentState {
 			
 			//Also check that my model of the gateway is still correct.
 			if(!fromWorld.equals(gateway)) {
-				gateways.put(pos, fromWorld);
+				addGateway(fromWorld);
 				return false;
 			}
 			
@@ -97,17 +102,13 @@ public class GatewayPersistentState extends PersistentState {
 	}
 	
 	public void addGateway(Gateway gateway) {
-		gateways.put(gateway.doorTopPos(), gateway);
+		gateways.add(gateway);
 		markDirty();
 	}
 	
 	public void removeGateway(Gateway gateway) {
-		removeGatewayAt(gateway.doorTopPos());
-	}
-	
-	public void removeGatewayAt(BlockPos doorTopPos) {
-		gateways.remove(doorTopPos);
-		checkDoors.add(doorTopPos);
+		gateways.remove(gateway);
+		checkDoors.add(gateway.doorTopPos());
 		markDirty();
 	}
 	
@@ -117,7 +118,7 @@ public class GatewayPersistentState extends PersistentState {
 	}
 	
 	public @Nullable Gateway findDifferentGateway(ServerWorld world, Gateway gateway, Random random) {
-		List<Gateway> otherGateways = gateways.values().stream().filter(other -> other.equalButDifferentPositions(gateway)).collect(Collectors.toList());
+		List<Gateway> otherGateways = gateways.stream().filter(other -> other.equalButDifferentPositions(gateway)).collect(Collectors.toList());
 		
 		for(int tries = 0; tries < 10; tries++) {
 			if(otherGateways.size() == 0) return null;

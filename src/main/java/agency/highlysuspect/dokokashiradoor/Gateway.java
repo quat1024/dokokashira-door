@@ -16,13 +16,15 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> frame, Direction facing) {
+public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> frame, Direction facing) implements Comparable<Gateway> {
 	//For serialization
 	public record Proto(BlockPos doorTopPos, Identifier doorBlockId, List<Identifier> frameIds, Direction facing) {
 		public static final Codec<Proto> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -148,5 +150,10 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		//Open the destination door
 		BlockState doorState = world.getBlockState(doorTopPos);
 		doorBlock.setOpen(null, world, doorState, doorTopPos, true);
+	}
+	
+	@Override
+	public int compareTo(@NotNull Gateway o) {
+		return this.doorTopPos.compareTo(o.doorTopPos);
 	}
 }
