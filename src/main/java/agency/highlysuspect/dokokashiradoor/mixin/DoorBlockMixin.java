@@ -1,7 +1,7 @@
 package agency.highlysuspect.dokokashiradoor.mixin;
 
-import agency.highlysuspect.dokokashiradoor.Gateway;
 import agency.highlysuspect.dokokashiradoor.GatewayPersistentState;
+import agency.highlysuspect.dokokashiradoor.client.ClientPlayerGatewayData;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
@@ -14,7 +14,6 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -38,15 +37,17 @@ public class DoorBlockMixin extends Block {
 		)
 	)
 	private void whenUsed(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit, CallbackInfoReturnable<ActionResult> cir) {
-		if(player != null && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER && state.get(DoorBlock.OPEN)
-		) {
+		if(player != null && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER && state.get(DoorBlock.OPEN)) {
 			if(!world.isClient() && world instanceof ServerWorld sworld && player instanceof ServerPlayerEntity splayer) {
 				//TODO: use this bool to suppress the sound of the door
 				boolean todo = GatewayPersistentState.getFor(sworld).playerUseDoor(sworld, pos, splayer);
 			}
 			
 			if(world.isClient()) {
-				//TODO: client-side predict teleportation
+				ClientPlayerGatewayData cpgd = ClientPlayerGatewayData.get();
+				if(cpgd != null) {
+					boolean todo = cpgd.predictDoorClient(world, pos, player);
+				}
 			}
 		}
 	}

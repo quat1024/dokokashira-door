@@ -36,6 +36,7 @@ public class DokoClientNet implements ClientModInitializer {
 				ClientPlayerGatewayData data = ClientPlayerGatewayData.get();
 				if(data != null) {
 					data.setGateways(update);
+					Init.LOGGER.info("Recv: {}", update);
 					sendAck(responseSender, update.checksum());
 				}
 			});
@@ -75,17 +76,6 @@ public class DokoClientNet implements ClientModInitializer {
 					map.removeIf(removals::containsValue);
 					
 					sendAck(responseSender, map.checksum());
-				}
-			});
-		});
-		
-		ClientPlayNetworking.registerGlobalReceiver(DokoMessages.SET_RANDOM_SEED, (client, handler, buf, responseSender) -> {
-			int seed = buf.readInt();
-			
-			client.execute(() -> {
-				ClientPlayerGatewayData data = ClientPlayerGatewayData.get();
-				if(data != null) {
-					data.setRandomSeed(seed);
 				}
 			});
 		});

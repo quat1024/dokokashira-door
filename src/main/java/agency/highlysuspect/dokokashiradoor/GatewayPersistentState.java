@@ -3,7 +3,7 @@ package agency.highlysuspect.dokokashiradoor;
 import agency.highlysuspect.dokokashiradoor.net.DokoServerNet;
 import agency.highlysuspect.dokokashiradoor.util.PlayerEntityExt;
 import agency.highlysuspect.dokokashiradoor.util.GatewayMap;
-import agency.highlysuspect.dokokashiradoor.util.RandomSelectableSet;
+import agency.highlysuspect.dokokashiradoor.util.FunnySet;
 import agency.highlysuspect.dokokashiradoor.util.ServerPlayNetworkHandlerExt;
 import agency.highlysuspect.dokokashiradoor.util.Util;
 import com.mojang.serialization.Codec;
@@ -25,11 +25,11 @@ import java.util.stream.Collectors;
 public class GatewayPersistentState extends PersistentState {
 	public GatewayPersistentState() {
 		gateways = new GatewayMap();
-		knownDoors = new RandomSelectableSet<>();
+		knownDoors = new FunnySet<>();
 	}
 	
 	//Deserialization constructor
-	private GatewayPersistentState(GatewayMap gateways, RandomSelectableSet<BlockPos> knownDoors) {
+	private GatewayPersistentState(GatewayMap gateways, FunnySet<BlockPos> knownDoors) {
 		this.gateways = gateways;
 		this.knownDoors = knownDoors;
 		
@@ -42,11 +42,11 @@ public class GatewayPersistentState extends PersistentState {
 	private final GatewayMap gatewaysJustAdded = new GatewayMap();
 	private final GatewayMap gatewaysJustRemoved = new GatewayMap();
 	
-	private final RandomSelectableSet<BlockPos> knownDoors;
+	private final FunnySet<BlockPos> knownDoors;
 	
 	public static final Codec<GatewayPersistentState> CODEC = RecordCodecBuilder.create(i -> i.group(
 		GatewayMap.CODEC.fieldOf("gateways").forGetter(gps -> gps.gateways),
-		RandomSelectableSet.codec(BlockPos.CODEC).fieldOf("knownDoors").forGetter(gps -> gps.knownDoors)
+		FunnySet.codec(BlockPos.CODEC).fieldOf("knownDoors").forGetter(gps -> gps.knownDoors)
 	).apply(i, GatewayPersistentState::new));
 	
 	public static GatewayPersistentState getFor(ServerWorld world) {
@@ -106,13 +106,14 @@ public class GatewayPersistentState extends PersistentState {
 	
 	private void sendUpdatePackets(ServerWorld world) {
 		if(!gatewaysJustAdded.isEmpty() || !gatewaysJustRemoved.isEmpty()) {
-			//TODO: Better delta update logic.
-			// 
 			for(ServerPlayerEntity player : world.getPlayers()) {
 				ServerPlayNetworkHandlerExt ext = ServerPlayNetworkHandlerExt.cast(player.networkHandler);
-				if(ext.dokodoor$getGatewayChecksum() != gatewayChecksum) {
+				
+				if(ext.dokodoor$getLastSentChecksum() != gatewayChecksum && ext.dokodoor$getLastAcknowledgedChecksum() != gatewayChecksum) {
 					DokoServerNet.sendDeltaUpdate(player, gatewaysJustAdded, gatewaysJustRemoved);
 				}
+				
+				ext.dokodoor$setLastSentChecksum(gatewayChecksum);
 			}
 			
 			gatewaysJustAdded.clear();
@@ -121,6 +122,8 @@ public class GatewayPersistentState extends PersistentState {
 	}
 	
 	private void putGateway(Gateway gateway) {
+		Init.LOGGER.info("putGateway {}", gateway);
+		
 		gateways.addGateway(gateway);
 		
 		gatewaysJustAdded.addGateway(gateway);
@@ -131,10 +134,14 @@ public class GatewayPersistentState extends PersistentState {
 	}
 	
 	private void removeGatewayAt(BlockPos pos) {
+		Init.LOGGER.info("removeGatewayAt {}", pos);
+		
 		removeGateway(gateways.getGatewayAt(pos));
 	}
 	
 	private void removeGateway(Gateway gateway) {
+		Init.LOGGER.info("removeGateway {}", gateway);
+		
 		gateways.removeGateway(gateway);
 		
 		gatewaysJustAdded.removeGateway(gateway);
@@ -160,7 +167,9 @@ public class GatewayPersistentState extends PersistentState {
 		Gateway thisGateway = Gateway.readFromWorld(world, doorTopPos);
 		if(thisGateway == null) return false;
 		
-		putGateway(thisGateway);
+		if(!thisGateway.equals(gateways.getGatewayAt(doorTopPos))) {
+			putGateway(thisGateway);
+		}
 		
 		//find a matching gateway
 		Random random = new Random();
@@ -174,18 +183,15 @@ public class GatewayPersistentState extends PersistentState {
 		
 		int newSeed = world.random.nextInt();
 		PlayerEntityExt.cast(player).dokodoor$setGatewayRandomSeed(newSeed);
-		DokoServerNet.sendRandomSeed(player, newSeed);
 		
 		return true;
 	}
 	
-	//TODO move this into GatewayMap or something?
-	// Clients need to replicate this behavior for accurate prediction
-	public @Nullable Gateway findDifferentGateway(ServerWorld world, Gateway gateway, Random random) {
+	public @Nullable Gateway findDifferentGateway(ServerWorld world, Gateway thisGateway, Random random) {
 		List<Gateway> otherGateways = gateways
 			.toSortedList()
 			.stream()
-			.filter(other -> other.equalButDifferentPositions(gateway))
+			.filter(other -> other.equalButDifferentPositions(thisGateway))
 			.collect(Collectors.toList());
 		
 		for(int tries = 0; tries < 10; tries++) {

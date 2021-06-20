@@ -8,10 +8,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.function.Predicate;
 
-public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> implements RandomSelectable<Gateway> {
+public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> {
 	public GatewayMap() {
 		super();
 	}
@@ -43,26 +42,6 @@ public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> impl
 		return get(pos);
 	}
 	
-	@Override
-	public @Nullable Gateway pickRandom(Random random) {
-		if(value == null) return null;
-		else return value[random.nextInt(value.length)];
-	}
-	
-	@Override
-	public @Nullable Gateway removeRandomIf(Random random, Predicate<Gateway> test) {
-		if(key == null) return null;
-		
-		BlockPos blockPos = key[random.nextInt(key.length)];
-		if(blockPos == null) return null;
-		
-		Gateway gateway = get(blockPos);
-		if(test.test(gateway)) {
-			remove(blockPos, gateway);
-			return gateway;
-		} else return null;
-	}
-	
 	//Kinda jank
 	public void removeIf(Predicate<Gateway> pred) {
 		if(key == null) return;
@@ -92,7 +71,7 @@ public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> impl
 		int checksum = 0;
 		
 		for(Gateway g : values()) {
-			checksum ^= g.hashCode();
+			checksum ^= g.checksum();
 		}
 		
 		return checksum;

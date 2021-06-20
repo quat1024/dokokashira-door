@@ -8,15 +8,28 @@ import org.spongepowered.asm.mixin.Unique;
 @Mixin(ServerPlayNetworkHandler.class)
 public class ServerPlayNetworkHandlerMixin implements ServerPlayNetworkHandlerExt {
 	@Unique
-	private int gatewayModCount = -1;
+	private int gatewayChecksumClient = -1;
+	
+	@Unique
+	private int gatewayChecksumServer = -1;
 	
 	@Override
-	public int dokodoor$getGatewayChecksum() {
-		return gatewayModCount;
+	public int dokodoor$getLastAcknowledgedChecksum() {
+		return gatewayChecksumClient;
 	}
 	
 	@Override
-	public void dokodoor$setGatewayChecksum(int modCount) {
-		gatewayModCount = modCount;
+	public void dokodoor$acknowledgeChecksum(int checksum) {
+		gatewayChecksumClient = checksum;
+	}
+	
+	@Override
+	public int dokodoor$getLastSentChecksum() {
+		return gatewayChecksumServer;
+	}
+	
+	@Override
+	public void dokodoor$setLastSentChecksum(int checksum) {
+		gatewayChecksumServer = checksum;
 	}
 }

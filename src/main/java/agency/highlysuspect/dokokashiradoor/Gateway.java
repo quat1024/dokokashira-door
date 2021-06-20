@@ -9,6 +9,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.enums.DoorHinge;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
@@ -23,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> frame, Direction facing) implements Comparable<Gateway> {
@@ -69,11 +71,11 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 			frame.equals(other.frame);
 	}
 	
-	public @Nullable Gateway recreate(ServerWorld world) {
+	public @Nullable Gateway recreate(World world) {
 		return readFromWorld(world, doorTopPos);
 	}
 	
-	public static @Nullable Gateway readFromWorld(ServerWorld world, BlockPos doorTopPosMut) {
+	public static @Nullable Gateway readFromWorld(World world, BlockPos doorTopPosMut) {
 		BlockPos doorTopPos = doorTopPosMut.toImmutable();
 		
 		BlockState doorTopState = world.getBlockState(doorTopPos);
@@ -115,7 +117,7 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		return new Gateway(doorTopPos, doorBlock, frameBlocks, forwards);
 	}
 	
-	public void arrive(World world, Gateway leftFrom, ServerPlayerEntity player) {
+	public void arrive(World world, Gateway leftFrom, PlayerEntity player) {
 		//Find the vector from (current door -> player position)
 		Vec3d currentDifference = player.getPos().subtract(Vec3d.ofBottomCenter(leftFrom.doorTopPos));
 		float yawAdd = 0;
@@ -138,7 +140,16 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		Vec3d destPos = currentDifference.add(Vec3d.ofBottomCenter(doorTopPos));
 		
 		//Send the player off
-		player.networkHandler.requestTeleport(destPos.x, destPos.y, destPos.z, player.getYaw() + yawAdd, player.getPitch());
+		if(player instanceof ServerPlayerEntity splayer) {
+			Init.LOGGER.info("SENDING TO {} yawAdd {}", destPos, yawAdd);
+			splayer.networkHandler.requestTeleport(destPos.x, destPos.y, destPos.z, player.getYaw() + yawAdd, player.getPitch());
+		} else {
+			//Try to move player clientside???
+			Init.LOGGER.info("PREDICT TO {} yawAdd {}", destPos, yawAdd);
+			player.setPos(destPos.x, destPos.y, destPos.z);
+			player.setYaw(player.getYaw() + yawAdd);
+		}
+		
 		
 		//Sneakily update the hinge on the destination door to match the hinge of the source door
 		// (makes it look better)
@@ -155,5 +166,23 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 	@Override
 	public int compareTo(@NotNull Gateway o) {
 		return this.doorTopPos.compareTo(o.doorTopPos);
+	}
+	
+	//Cannot use raw hashCode because Block hashcodes are object-identity based
+	//so between server/client, they're gonna be different
+	public int checksum() {
+		int checksum = doorTopPos.hashCode();
+		checksum *= 31;
+		
+		checksum ^= Registry.BLOCK.getRawId(doorBlock);
+		checksum *= 31;
+		
+		for(Block f : frame) {
+			checksum ^= Registry.BLOCK.getRawId(f);
+			checksum *= 31;
+		}
+		
+		checksum ^= facing.ordinal();
+		return checksum;
 	}
 }
