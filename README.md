@@ -29,6 +29,8 @@ Server applies changes to the client's GatewayMap in that dimension. Respond wit
 * `RegistryKey<World>` dimension
 * int checksum
 
+Server verifies that the checksum is correct for this dimension's GatewayMap. If the checksum is not correct, server sends a full update.
+
 ## Todo
 
 * Lotsa log messages to remove.

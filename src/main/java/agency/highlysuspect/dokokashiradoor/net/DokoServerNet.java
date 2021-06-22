@@ -33,13 +33,6 @@ public class DokoServerNet {
 				}
 			});
 		});
-		
-		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-			ServerPlayerEntity player = handler.player;
-			ServerWorld world = player.getServerWorld();
-			
-			ServerPlayNetworkHandlerExt.cast(handler).dokodoor$getExtension().sendFullUpdate(handler, world);
-		});
 	}
 	
 	public static void sendFullUpdate(ServerPlayerEntity player, RegistryKey<World> wkey, GatewayMap gateways) {
