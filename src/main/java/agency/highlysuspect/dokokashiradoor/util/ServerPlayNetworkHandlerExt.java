@@ -1,22 +1,18 @@
 package agency.highlysuspect.dokokashiradoor.util;
 
+import agency.highlysuspect.dokokashiradoor.net.DokoServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
+import net.minecraft.server.world.ServerWorld;
 
 public interface ServerPlayNetworkHandlerExt {
-	//The checksum clients self-report through the "acknowledgement" packet
-	int dokodoor$getLastAcknowledgedChecksum();
-	void dokodoor$acknowledgeChecksum(int checksum);
+	DokoServerPlayNetworkHandler dokodoor$getExtension();
 	
-	//The checksum the server last attempted to send the client.
-	//Used to prevent spamming clients with 10 "you're out of date, update" packets if the only reason the client hasn't acknowledged one yet is latency
-	int dokodoor$getLastSentChecksum();
-	void dokodoor$setLastSentChecksum(int checksum);
+	default void dokodoor$recvChecksum(ServerWorld world, int checksum) {
+		dokodoor$getExtension().recvChecksum((ServerPlayNetworkHandler) this, world, checksum);
+	}
 	
-	default void dokodoor$invalidateGatewayChecksum() {
-		//quick-and-dirty way to tell the server to send a full-update
-		//might want to change this, it's kinda shite
-		dokodoor$acknowledgeChecksum(-1);
-		dokodoor$setLastSentChecksum(-1);
+	default void dokodoor$dimensionChange(ServerWorld world) {
+		dokodoor$getExtension().onDimensionChange((ServerPlayNetworkHandler) this, world);
 	}
 	
 	static ServerPlayNetworkHandlerExt cast(ServerPlayNetworkHandler a) {

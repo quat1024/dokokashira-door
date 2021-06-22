@@ -13,6 +13,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class ServerPlayerEntityMixin {
 	@Inject(method = "moveToWorld", at = @At("HEAD"))
 	public void whenMovingToWorld(ServerWorld destination, CallbackInfoReturnable<Entity> cir) {
-		ServerPlayNetworkHandlerExt.cast(((ServerPlayerEntity) (Object) this).networkHandler).dokodoor$invalidateGatewayChecksum();
+		ServerPlayNetworkHandlerExt.cast(((ServerPlayerEntity) (Object) this).networkHandler).dokodoor$dimensionChange(destination);
 	}
 }

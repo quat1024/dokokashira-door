@@ -1,6 +1,5 @@
 package agency.highlysuspect.dokokashiradoor.net;
 
-import agency.highlysuspect.dokokashiradoor.GatewayPersistentState;
 import agency.highlysuspect.dokokashiradoor.Init;
 import agency.highlysuspect.dokokashiradoor.util.GatewayMap;
 import agency.highlysuspect.dokokashiradoor.util.ServerPlayNetworkHandlerExt;
@@ -11,37 +10,45 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.registry.RegistryKey;
+import net.minecraft.world.World;
 
 public class DokoServerNet {
 	public static void onInitialize() {
-		ServerPlayNetworking.registerGlobalReceiver(DokoMessages.GATEWAY_ACK, (server, player, handler, buf, responseSender) -> {
+		ServerPlayNetworking.registerGlobalReceiver(DokoMessages.DELTA_GATEWAY_ACK, (server, player, handler, buf, responseSender) -> {
+			Identifier worldKeyAck = buf.readIdentifier();
 			int checksum = buf.readInt();
 			
 			server.execute(() -> {
-				//update last known checksum on this player
-				ServerPlayNetworkHandlerExt.cast(player.networkHandler).dokodoor$acknowledgeChecksum(checksum);
-				
-				//if it's the wrong checksum, send a full update
-				GatewayPersistentState gps = GatewayPersistentState.getFor(player.getServerWorld());
-				if(gps.gatewayChecksum != checksum) {
-					Init.LOGGER.error("Sending full update as checksums did not match, expected {}, found {}", gps.gatewayChecksum, checksum);
-					
-					sendFullUpdate(player, gps.gateways);
+				//Obtain the client's mentioned world without creating a RegistryKey.
+				//RegistryKey.of caches its return values until the end of time.
+				//It's not safe to call that on user-controlled data without checking, memory-exhaustion vector.
+				for(ServerWorld world : server.getWorlds()) {
+					if(world.getRegistryKey().getValue().equals(worldKeyAck)) {
+						ServerPlayNetworkHandlerExt.cast(player.networkHandler).dokodoor$recvChecksum(world, checksum);
+						return;
+					}
 				}
 			});
 		});
 		
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			ServerPlayerEntity player = handler.player;
-			GatewayPersistentState gps = GatewayPersistentState.getFor(player.getServerWorld());
-			Init.LOGGER.info("Sending full update to player");
-			sendFullUpdate(player, gps.gateways);
+			ServerWorld world = player.getServerWorld();
+			
+			ServerPlayNetworkHandlerExt.cast(handler).dokodoor$getExtension().sendFullUpdate(handler, world);
 		});
 	}
 	
-	public static void sendFullUpdate(ServerPlayerEntity player, GatewayMap gateways) {
-		Init.LOGGER.info("Full update to player {}, {}", player.getName().asString(), gateways);
+	public static void sendFullUpdate(ServerPlayerEntity player, RegistryKey<World> wkey, GatewayMap gateways) {
+		Init.LOGGER.info("Full update to player {}", player.getEntityName());
+		Init.LOGGER.info("\tWorld:    {}", wkey);
+		Init.LOGGER.info("\tContents: {}", gateways);
 		PacketByteBuf buf = PacketByteBufs.create();
+		
+		buf.writeIdentifier(wkey.getValue());
 		
 		NbtCompound nbt = new NbtCompound();
 		nbt.put("full_update", Util.writeNbt(GatewayMap.CODEC, gateways));
@@ -50,9 +57,14 @@ public class DokoServerNet {
 		ServerPlayNetworking.send(player, DokoMessages.FULL_GATEWAY_UPDATE, buf);
 	}
 	
-	public static void sendDeltaUpdate(ServerPlayerEntity player, GatewayMap additions, GatewayMap removals) {
-		Init.LOGGER.info("Delta update to player " + player.getName().asString());
+	public static void sendDeltaUpdate(ServerPlayerEntity player, RegistryKey<World> wkey, GatewayMap additions, GatewayMap removals) {
+		Init.LOGGER.info("Delta update to player {}", player.getEntityName());
+		Init.LOGGER.info("\tWorld:     {}", wkey.getValue());
+		Init.LOGGER.info("\tAdditions: {}", additions);
+		Init.LOGGER.info("\tRemovals:  {}", removals);
 		PacketByteBuf buf = PacketByteBufs.create();
+		
+		buf.writeIdentifier(wkey.getValue());
 		
 		NbtCompound nbt = new NbtCompound();
 		nbt.put("additions", Util.writeNbt(GatewayMap.CODEC, additions));

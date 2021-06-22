@@ -2,12 +2,9 @@ package agency.highlysuspect.dokokashiradoor.util;
 
 import com.mojang.serialization.Codec;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Random;
-import java.util.function.Predicate;
 
 public class FunnySet<T> extends ObjectOpenHashSet<T> {
 	public FunnySet() {

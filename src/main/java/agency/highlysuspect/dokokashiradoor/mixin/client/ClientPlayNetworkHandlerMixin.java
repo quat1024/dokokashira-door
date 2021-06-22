@@ -8,15 +8,10 @@ import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(ClientPlayNetworkHandler.class)
 public class ClientPlayNetworkHandlerMixin implements ClientPlayNetworkHandlerExt {
-	@Unique private ClientPlayerGatewayData data = new ClientPlayerGatewayData();
+	@Unique private final ClientPlayerGatewayData data = new ClientPlayerGatewayData();
 	
 	@Override
 	public ClientPlayerGatewayData doko$getData() {
 		return data;
-	}
-	
-	@Override
-	public void doko$setData(ClientPlayerGatewayData data) {
-		this.data = data;
 	}
 }

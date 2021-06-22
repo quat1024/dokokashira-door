@@ -6,84 +6,55 @@ import agency.highlysuspect.dokokashiradoor.util.Util;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.RegistryKey;
+import net.minecraft.world.World;
 
 public class DokoClientNet implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		ClientPlayNetworking.registerGlobalReceiver(DokoMessages.FULL_GATEWAY_UPDATE, (client, handler, buf, responseSender) -> {
-			NbtCompound uwu = buf.readNbt();
+			Identifier worldKeyId = buf.readIdentifier();
+			NbtCompound nbt = buf.readNbt();
 				
 			client.execute(() -> {
-				if(client.player == null) {
-					Init.LOGGER.error("Recv gateway update but no player. Ignoring");
-					return;
-					
-				}
-				if(uwu == null) {
-					Init.LOGGER.error("Recv null gatewaymap nbt");
-					return;
-				}
+				if(client.player == null) { Init.LOGGER.error("Recv gateway update but no player. Ignoring"); return; }
 				
-				GatewayMap update = Util.readNbt(GatewayMap.CODEC, uwu.get("full_update"));
-				if(update == null) {
-					Init.LOGGER.error("Recv invalid gatewaymap nbt");
-					return;
-				}
+				RegistryKey<World> worldKey = RegistryKey.of(Registry.WORLD_KEY, worldKeyId);
 				
-				ClientPlayerGatewayData data = ClientPlayerGatewayData.get();
-				if(data != null) {
-					data.setGateways(update);
-					Init.LOGGER.info("Recv: {}", update);
-					sendAck(responseSender, update.checksum());
-				}
+				if(nbt == null) { Init.LOGGER.error("Recv null gatewaymap nbt"); return; }
+				GatewayMap map = Util.readNbt(GatewayMap.CODEC, nbt.get("full_update"));
+				if(map == null) { Init.LOGGER.error("Recv invalid gatewaymap nbt"); return; }
+				
+				ClientPlayerGatewayData.get().ifPresent(d -> d.fullGatewayUpdate(worldKey, map));
 			});
 		});
 		
 		ClientPlayNetworking.registerGlobalReceiver(DokoMessages.DELTA_GATEWAY_UPDATE, (client, handler, buf, responseSender) -> {
-			NbtCompound uwu = buf.readNbt();
+			Identifier worldKeyId = buf.readIdentifier();
+			NbtCompound nbt = buf.readNbt();
 			
 			client.execute(() -> {
-				if(uwu == null) {
-					Init.LOGGER.error("Received null deltaupdate gateway map nbt");
-					return;
-				}
+				if(nbt == null) { Init.LOGGER.error("Received null deltaupdate gateway map nbt"); return; }
 				
-				GatewayMap additions = Util.readNbt(GatewayMap.CODEC, uwu.get("additions"));
-				if(additions == null) {
-					Init.LOGGER.error("received invalid gatewaymap additions");
-					return;
-				}
+				RegistryKey<World> worldKey = RegistryKey.of(Registry.WORLD_KEY, worldKeyId);
 				
-				GatewayMap removals = Util.readNbt(GatewayMap.CODEC, uwu.get("removals"));
-				if(removals == null) {
-					Init.LOGGER.error("received invalid gatewaymap removals");
-					return;
-				}
+				GatewayMap additions = Util.readNbt(GatewayMap.CODEC, nbt.get("additions"));
+				if(additions == null) { Init.LOGGER.error("received invalid gatewaymap additions"); return; }
 				
-				//TODO: Do something with the GatewayMaps
-				ClientPlayerGatewayData data = ClientPlayerGatewayData.get();
-				if(data != null) {
-					GatewayMap map = data.getGateways();
-					if(map == null) {
-						map = new GatewayMap();
-						data.setGateways(map);
-					}
-					
-					map.putAll(additions);
-					map.removeIf(removals::containsValue);
-					
-					sendAck(responseSender, map.checksum());
-				}
+				GatewayMap removals = Util.readNbt(GatewayMap.CODEC, nbt.get("removals"));
+				if(removals == null) { Init.LOGGER.error("received invalid gatewaymap removals"); return; }
+				
+				ClientPlayerGatewayData.get().ifPresent(d -> {
+					PacketByteBuf yes = PacketByteBufs.create();
+					yes.writeIdentifier(worldKey.getValue());
+					yes.writeInt(d.deltaGatewayUpdate(worldKey, additions, removals));
+					responseSender.sendPacket(DokoMessages.DELTA_GATEWAY_ACK, yes);
+				});
 			});
 		});
-	}
-	
-	public void sendAck(PacketSender resp, int checksum) {
-		PacketByteBuf yes = PacketByteBufs.create();
-		yes.writeInt(checksum);
-		resp.sendPacket(DokoMessages.GATEWAY_ACK, yes);
 	}
 }

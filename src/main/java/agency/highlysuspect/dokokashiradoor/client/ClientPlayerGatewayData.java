@@ -8,27 +8,31 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ClientPlayerGatewayData {
-	private GatewayMap gateways;
+	//private GatewayMap gateways;
+	private final Map<RegistryKey<World>, GatewayMap> gatewayStorage = new HashMap<>();
 	
-	public @Nullable GatewayMap getGateways() {
-		return gateways;
+	public int fullGatewayUpdate(RegistryKey<World> key, GatewayMap value) {
+		gatewayStorage.put(key, value);
+		return value.checksum();
 	}
 	
-	public void setGateways(GatewayMap gateways) {
-		this.gateways = gateways;
+	public int deltaGatewayUpdate(RegistryKey<World> key, GatewayMap additions, GatewayMap removals) {
+		GatewayMap map = gatewayStorage.computeIfAbsent(key, __ -> new GatewayMap());
+		map.applyDelta(additions, removals);
+		return map.checksum();
 	}
 	
-	public static ClientPlayerGatewayData get() {
-		if(MinecraftClient.getInstance().player == null) return null;
-		else return ClientPlayNetworkHandlerExt.cast(MinecraftClient.getInstance().player.networkHandler).doko$getData();
+	public static Optional<ClientPlayerGatewayData> get() {
+		if(MinecraftClient.getInstance().player == null) return Optional.empty();
+		else return Optional.of(ClientPlayNetworkHandlerExt.cast(MinecraftClient.getInstance().player.networkHandler).doko$getData());
 	}
 	
 	/**
@@ -42,7 +46,7 @@ public class ClientPlayerGatewayData {
 		//find a matching gateway
 		Random random = new Random();
 		random.setSeed(PlayerEntityExt.cast(player).dokodoor$getGatewayRandomSeed());
-		@Nullable Gateway other = findDifferentGatewayClient(thisGateway, random);
+		@Nullable Gateway other = findDifferentGatewayClient(world, thisGateway, random);
 		
 		if(other == null) return false;
 		
@@ -53,10 +57,10 @@ public class ClientPlayerGatewayData {
 	/**
 	 * @see agency.highlysuspect.dokokashiradoor.GatewayPersistentState#findDifferentGateway(ServerWorld, Gateway, Random)
 	 */
-	private @Nullable Gateway findDifferentGatewayClient(Gateway thisGateway, Random random) {
-		if(gateways == null) return null;
+	private @Nullable Gateway findDifferentGatewayClient(World world, Gateway thisGateway, Random random) {
 		
-		List<Gateway> otherGateways = gateways
+		List<Gateway> otherGateways = gatewayStorage
+			.computeIfAbsent(world.getRegistryKey(), __ -> new GatewayMap())
 			.toSortedList()
 			.stream()
 			.filter(other -> other.equalButDifferentPositions(thisGateway))

@@ -28,6 +28,15 @@ public class GatewayPersistentState extends PersistentState {
 		knownDoors = new FunnySet<>();
 	}
 	
+	private final GatewayMap gateways;
+	private int gatewayChecksum;
+	private final FunnySet<BlockPos> knownDoors;
+	
+	public static final Codec<GatewayPersistentState> CODEC = RecordCodecBuilder.create(i -> i.group(
+		GatewayMap.CODEC.fieldOf("gateways").forGetter(gps -> gps.gateways),
+		FunnySet.codec(BlockPos.CODEC).fieldOf("knownDoors").forGetter(gps -> gps.knownDoors)
+	).apply(i, GatewayPersistentState::new));
+	
 	//Deserialization constructor
 	private GatewayPersistentState(GatewayMap gateways, FunnySet<BlockPos> knownDoors) {
 		this.gateways = gateways;
@@ -35,19 +44,6 @@ public class GatewayPersistentState extends PersistentState {
 		
 		gatewayChecksum = gateways.checksum();
 	}
-	
-	public final GatewayMap gateways;
-	public int gatewayChecksum;
-	
-	private final GatewayMap gatewaysJustAdded = new GatewayMap();
-	private final GatewayMap gatewaysJustRemoved = new GatewayMap();
-	
-	private final FunnySet<BlockPos> knownDoors;
-	
-	public static final Codec<GatewayPersistentState> CODEC = RecordCodecBuilder.create(i -> i.group(
-		GatewayMap.CODEC.fieldOf("gateways").forGetter(gps -> gps.gateways),
-		FunnySet.codec(BlockPos.CODEC).fieldOf("knownDoors").forGetter(gps -> gps.knownDoors)
-	).apply(i, GatewayPersistentState::new));
 	
 	public static GatewayPersistentState getFor(ServerWorld world) {
 		return world.getPersistentStateManager().getOrCreate(GatewayPersistentState::fromNbt, GatewayPersistentState::new, "dokokashira-doors");
@@ -58,7 +54,6 @@ public class GatewayPersistentState extends PersistentState {
 		
 		upkeepDoors(world, cm);
 		upkeepGateways(world, cm);
-		sendUpdatePackets(world);
 	}
 	
 	private void upkeepDoors(ServerWorld world, ChunkManager cm) {
@@ -104,32 +99,14 @@ public class GatewayPersistentState extends PersistentState {
 		}
 	}
 	
-	private void sendUpdatePackets(ServerWorld world) {
-		if(!gatewaysJustAdded.isEmpty() || !gatewaysJustRemoved.isEmpty()) {
-			for(ServerPlayerEntity player : world.getPlayers()) {
-				ServerPlayNetworkHandlerExt ext = ServerPlayNetworkHandlerExt.cast(player.networkHandler);
-				
-				if(ext.dokodoor$getLastSentChecksum() != gatewayChecksum && ext.dokodoor$getLastAcknowledgedChecksum() != gatewayChecksum) {
-					DokoServerNet.sendDeltaUpdate(player, gatewaysJustAdded, gatewaysJustRemoved);
-				}
-				
-				ext.dokodoor$setLastSentChecksum(gatewayChecksum);
-			}
-			
-			gatewaysJustAdded.clear();
-			gatewaysJustRemoved.clear();
-		}
-	}
-	
 	private void putGateway(Gateway gateway) {
 		Init.LOGGER.info("putGateway {}", gateway);
-		
 		gateways.addGateway(gateway);
 		
-		gatewaysJustAdded.addGateway(gateway);
-		gatewaysJustRemoved.removeGateway(gateway);
+		//gatewayChecksum ^= gateway.checksum();
+		//assert gatewayChecksum == gateways.checksum();
+		gatewayChecksum = gateways.checksum();
 		
-		gatewayChecksum = gateways.checksum(); //TODO delta update
 		markDirty();
 	}
 	
@@ -141,13 +118,10 @@ public class GatewayPersistentState extends PersistentState {
 	
 	private void removeGateway(Gateway gateway) {
 		Init.LOGGER.info("removeGateway {}", gateway);
-		
 		gateways.removeGateway(gateway);
 		
-		gatewaysJustAdded.removeGateway(gateway);
-		gatewaysJustRemoved.addGateway(gateway);
-		
 		gatewayChecksum = gateways.checksum(); //TODO delta update
+		
 		markDirty();
 	}
 	
@@ -221,5 +195,13 @@ public class GatewayPersistentState extends PersistentState {
 	
 	public static GatewayPersistentState fromNbt(NbtCompound nbt) {
 		return Util.readNbtAllowPartial(CODEC, nbt.get("Gateways"));
+	}
+	
+	public GatewayMap getAllGateways() {
+		return gateways;
+	}
+	
+	public int getChecksum() {
+		return gatewayChecksum;
 	}
 }

@@ -20,6 +20,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Optional;
+
 @Mixin(DoorBlock.class)
 public class DoorBlockMixin extends Block {
 	public DoorBlockMixin(Settings settings) {
@@ -44,9 +46,9 @@ public class DoorBlockMixin extends Block {
 			}
 			
 			if(world.isClient()) {
-				ClientPlayerGatewayData cpgd = ClientPlayerGatewayData.get();
-				if(cpgd != null) {
-					boolean todo = cpgd.predictDoorClient(world, pos, player);
+				Optional<ClientPlayerGatewayData> cpgd = ClientPlayerGatewayData.get();
+				if(cpgd.isPresent()) {
+					boolean todo = cpgd.get().predictDoorClient(world, pos, player);
 				}
 			}
 		}

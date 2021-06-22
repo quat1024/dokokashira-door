@@ -6,6 +6,29 @@ For Modfest 1.17.
 
 (based off a silly editing gimmick from *PiroPito First Playthrough of Minecraft*, which I'm hearing is a Doraemon reference)
 
+## Protocol
+
+#### S -> C `dokokashira_door:full_gateway_update`
+
+* `RegistryKey<World>` dimension
+* Nbt compound with one child element, `full_update`
+	* Serialized GatewayMap, read it back with the codec
+
+Server overwrites the client's GatewayMap in that dimension. No response.
+
+#### S -> C `dokokashira_door:delta_gateway_update`
+
+* `RegistryKey<World>` dimension
+* Nbt compound with two child elements, `additions` and `removals`
+	* Serialized GatewayMaps, read them back with the codec
+
+Server applies changes to the client's GatewayMap in that dimension. Respond with the following:
+
+#### C -> S `dokokashira_door:delta_gateway_ack`
+
+* `RegistryKey<World>` dimension
+* int checksum
+
 ## Todo
 
 * Lotsa log messages to remove.

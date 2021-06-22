@@ -42,6 +42,18 @@ public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> {
 		return get(pos);
 	}
 	
+	public boolean contains(Gateway other) {
+		//containsValue is a linear search
+		return containsKey(other.doorTopPos()) && get(other.doorTopPos()).equals(other);
+	}
+	
+	public GatewayMap copy() {
+		//Gateway objects are immutable records, no deep copy is needed
+		GatewayMap copy = new GatewayMap();
+		copy.putAll(this);
+		return copy;
+	}
+	
 	//Kinda jank
 	public void removeIf(Predicate<Gateway> pred) {
 		if(key == null) return;
@@ -75,5 +87,23 @@ public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> {
 		}
 		
 		return checksum;
+	}
+	
+	public static record Delta(GatewayMap additions, GatewayMap removals) {}
+	public Delta diffAgainst(GatewayMap other) {
+		//Gateways that exist in this map, but not the other map, should be *added to* the other map.
+		GatewayMap additions = copy();
+		additions.removeIf(other::contains);
+		
+		//Gateways that exist in the other map, but not in this one, should be *removed from* this map.
+		GatewayMap removals = other.copy();
+		removals.removeIf(this::contains);
+		
+		return new Delta(additions, removals);
+	}
+	
+	public void applyDelta(GatewayMap additions, GatewayMap removals) {
+		putAll(additions);
+		removeIf(removals::contains);
 	}
 }
