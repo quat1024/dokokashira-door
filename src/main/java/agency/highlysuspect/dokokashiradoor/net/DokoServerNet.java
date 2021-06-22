@@ -1,11 +1,10 @@
 package agency.highlysuspect.dokokashiradoor.net;
 
-import agency.highlysuspect.dokokashiradoor.Init;
 import agency.highlysuspect.dokokashiradoor.util.GatewayMap;
 import agency.highlysuspect.dokokashiradoor.util.ServerPlayNetworkHandlerExt;
 import agency.highlysuspect.dokokashiradoor.util.Util;
+import it.unimi.dsi.fastutil.ints.IntList;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
@@ -27,18 +26,23 @@ public class DokoServerNet {
 				//It's not safe to call that on user-controlled data without checking, memory-exhaustion vector.
 				for(ServerWorld world : server.getWorlds()) {
 					if(world.getRegistryKey().getValue().equals(worldKeyAck)) {
-						ServerPlayNetworkHandlerExt.cast(player.networkHandler).dokodoor$recvChecksum(world, checksum);
+						ServerPlayNetworkHandlerExt.cast(handler).dokodoor$getExtension().ackGatewayChecksum(handler, world, checksum);
 						return;
 					}
 				}
 			});
 		});
+		
+		ServerPlayNetworking.registerGlobalReceiver(DokoMessages.RANDOM_SEEDS_ACK, (server, player, handler, buf, responseSender) -> {
+			int checksum = buf.readInt();
+			
+			server.execute(() -> {
+				ServerPlayNetworkHandlerExt.cast(handler).dokodoor$getExtension().ackRandomSeedChecksum(handler, checksum);
+			});
+		});
 	}
 	
-	public static void sendFullUpdate(ServerPlayerEntity player, RegistryKey<World> wkey, GatewayMap gateways) {
-		Init.LOGGER.info("Full update to player {}", player.getEntityName());
-		Init.LOGGER.info("\tWorld:    {}", wkey);
-		Init.LOGGER.info("\tContents: {}", gateways);
+	public static void sendFullGatewayUpdate(ServerPlayerEntity player, RegistryKey<World> wkey, GatewayMap gateways) {
 		PacketByteBuf buf = PacketByteBufs.create();
 		
 		buf.writeIdentifier(wkey.getValue());
@@ -50,11 +54,7 @@ public class DokoServerNet {
 		ServerPlayNetworking.send(player, DokoMessages.FULL_GATEWAY_UPDATE, buf);
 	}
 	
-	public static void sendDeltaUpdate(ServerPlayerEntity player, RegistryKey<World> wkey, GatewayMap additions, GatewayMap removals) {
-		Init.LOGGER.info("Delta update to player {}", player.getEntityName());
-		Init.LOGGER.info("\tWorld:     {}", wkey.getValue());
-		Init.LOGGER.info("\tAdditions: {}", additions);
-		Init.LOGGER.info("\tRemovals:  {}", removals);
+	public static void sendDeltaGatewayUpdate(ServerPlayerEntity player, RegistryKey<World> wkey, GatewayMap additions, GatewayMap removals) {
 		PacketByteBuf buf = PacketByteBufs.create();
 		
 		buf.writeIdentifier(wkey.getValue());
@@ -65,5 +65,17 @@ public class DokoServerNet {
 		buf.writeNbt(nbt);
 		
 		ServerPlayNetworking.send(player, DokoMessages.DELTA_GATEWAY_UPDATE, buf);
+	}
+	
+	public static void addRandomSeeds(ServerPlayerEntity player, IntList moreSeeds) {
+		PacketByteBuf buf = PacketByteBufs.create();
+		buf.writeIntList(moreSeeds);
+		ServerPlayNetworking.send(player, DokoMessages.ADD_RANDOM_SEEDS, buf);
+	}
+	
+	public static void setRandomSeeds(ServerPlayerEntity player, IntList randomSeeds) {
+		PacketByteBuf buf = PacketByteBufs.create();
+		buf.writeIntList(randomSeeds);
+		ServerPlayNetworking.send(player, DokoMessages.SET_RANDOM_SEEDS, buf);
 	}
 }

@@ -1,6 +1,5 @@
 package agency.highlysuspect.dokokashiradoor;
 
-import agency.highlysuspect.dokokashiradoor.util.Util;
 import com.google.common.base.Preconditions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
@@ -11,7 +10,6 @@ import net.minecraft.block.DoorBlock;
 import net.minecraft.block.enums.DoorHinge;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -22,9 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> frame, Direction facing) implements Comparable<Gateway> {
@@ -120,18 +116,22 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 	public void arrive(World world, Gateway leftFrom, PlayerEntity player) {
 		//Find the vector from (current door -> player position)
 		Vec3d currentDifference = player.getPos().subtract(Vec3d.ofBottomCenter(leftFrom.doorTopPos));
+		Vec3d velocity = player.getVelocity();
 		float yawAdd = 0;
 		
 		//Rotate that vector according to the difference in angle between the two doors
 		if(facing != leftFrom.facing) {
 			if(facing.rotateYClockwise() == leftFrom.facing) {
 				currentDifference = new Vec3d(currentDifference.z, currentDifference.y, -currentDifference.x);
+				velocity =          new Vec3d(velocity.z,          velocity.y,          -velocity.x);
 				yawAdd = 270;
 			} else if(facing.getOpposite() == leftFrom.facing) {
 				currentDifference = new Vec3d(-currentDifference.x, currentDifference.y, -currentDifference.z);
+				velocity =          new Vec3d(-velocity.x,          velocity.y,          -velocity.z);
 				yawAdd = 180;
 			} else {
 				currentDifference = new Vec3d(-currentDifference.z, currentDifference.y, currentDifference.x);
+				velocity =          new Vec3d(-velocity.z,          velocity.y,          velocity.x);
 				yawAdd = 90;
 			}
 		}
@@ -140,27 +140,35 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		Vec3d destPos = currentDifference.add(Vec3d.ofBottomCenter(doorTopPos));
 		
 		//Send the player off
+		player.setPosition(destPos); //this one updates the boundingbox as well
+		player.setYaw(player.getYaw() + yawAdd);
+		player.setVelocity(velocity);
+		
+		player.resetPosition(); //sets prevX/Y/Z, prevYaw, etc. Makes the renderer look nicer & no headsnap
+		//misc yaws, prevents funky head snaps and stuff
+		player.bodyYaw = player.bodyYaw + yawAdd;
+		player.prevBodyYaw = player.bodyYaw;
+		player.headYaw = player.headYaw + yawAdd;
+		player.prevHeadYaw = player.headYaw;
+		
 		if(player instanceof ServerPlayerEntity splayer) {
-			Init.LOGGER.info("SENDING TO {} yawAdd {}", destPos, yawAdd);
-			splayer.networkHandler.requestTeleport(destPos.x, destPos.y, destPos.z, player.getYaw() + yawAdd, player.getPitch());
-		} else {
-			//Try to move player clientside???
-			Init.LOGGER.info("PREDICT TO {} yawAdd {}", destPos, yawAdd);
-			player.setPos(destPos.x, destPos.y, destPos.z);
-			player.setYaw(player.getYaw() + yawAdd);
+			//Make the ServerPlayNetworkHandler agree with that position. Makes you not rubberband
+			splayer.networkHandler.syncWithPlayerPosition();
 		}
 		
+		BlockState departureDoorState = world.getBlockState(leftFrom.doorTopPos);
+		BlockState arrivalDoorState = world.getBlockState(doorTopPos);
 		
-		//Sneakily update the hinge on the destination door to match the hinge of the source door
-		// (makes it look better)
-		BlockState leftFromDoorState = world.getBlockState(leftFrom.doorTopPos);
-		DoorHinge hinge = leftFromDoorState.get(DoorBlock.HINGE);
-		world.setBlockState(doorTopPos, world.getBlockState(doorTopPos).with(DoorBlock.HINGE, hinge));
-		//world.setBlockState(doorTopPos.down(), world.getBlockState(doorTopPos.down()).with(DoorBlock.HINGE, hinge));
-		
-		//Open the destination door
-		BlockState doorState = world.getBlockState(doorTopPos);
-		doorBlock.setOpen(null, world, doorState, doorTopPos, true);
+		//On the client, if the destination chunk is not currently loaded, this check fails.
+		if(departureDoorState.getBlock() instanceof DoorBlock && arrivalDoorState.getBlock() instanceof DoorBlock) {
+			//Sneakily update the hinge on the destination door to match the hinge of the source door
+			//(makes it look better)
+			DoorHinge hinge = departureDoorState.get(DoorBlock.HINGE);
+			world.setBlockState(doorTopPos, arrivalDoorState.with(DoorBlock.HINGE, hinge));
+			//Block-update takes care of the bottom half
+			
+			doorBlock.setOpen(null, world, arrivalDoorState, doorTopPos, true);
+		}
 	}
 	
 	@Override

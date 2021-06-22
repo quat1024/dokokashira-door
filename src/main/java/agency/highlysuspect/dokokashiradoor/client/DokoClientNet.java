@@ -3,6 +3,7 @@ import agency.highlysuspect.dokokashiradoor.Init;
 import agency.highlysuspect.dokokashiradoor.net.DokoMessages;
 import agency.highlysuspect.dokokashiradoor.util.GatewayMap;
 import agency.highlysuspect.dokokashiradoor.util.Util;
+import it.unimi.dsi.fastutil.ints.IntList;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
@@ -55,6 +56,21 @@ public class DokoClientNet implements ClientModInitializer {
 					responseSender.sendPacket(DokoMessages.DELTA_GATEWAY_ACK, yes);
 				});
 			});
+		});
+		
+		ClientPlayNetworking.registerGlobalReceiver(DokoMessages.ADD_RANDOM_SEEDS, (client, handler, buf, responseSender) -> {
+			IntList newSeeds = buf.readIntList();
+			
+			client.execute(() -> ClientPlayerGatewayData.get().ifPresent(d -> {
+				PacketByteBuf yes = PacketByteBufs.create();
+				yes.writeInt(d.deltaRandomSeeds(newSeeds));
+				responseSender.sendPacket(DokoMessages.RANDOM_SEEDS_ACK, yes);
+			}));
+		});
+		
+		ClientPlayNetworking.registerGlobalReceiver(DokoMessages.SET_RANDOM_SEEDS, (client, handler, buf, responseSender) -> {
+			IntList newSeeds = buf.readIntList();
+			client.execute(() -> ClientPlayerGatewayData.get().ifPresent(d -> d.fullRandomSeeds(newSeeds)));
 		});
 	}
 }

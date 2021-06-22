@@ -2,10 +2,13 @@ package agency.highlysuspect.dokokashiradoor.util;
 
 import agency.highlysuspect.dokokashiradoor.Init;
 import com.mojang.serialization.Codec;
+import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.ChunkManager;
+
+import java.util.zip.CRC32;
 
 public class Util {
 	public static <T> T readNbt(Codec<T> codec, NbtElement nbt) {
@@ -36,5 +39,16 @@ public class Util {
 			if(!cm.isChunkLoaded(p.getX() / 16, p.getZ() / 16)) return false;
 		}
 		return true;
+	}
+	
+	public static int checksumIntList(IntList list) {
+		CRC32 crc = new CRC32();
+		
+		for(int i = 0; i < list.size(); i++) {
+			crc.update(list.getInt(i));
+		}
+		
+		//Boo, hiss
+		return (int) ((crc.getValue()) ^ (crc.getValue() >> 32));
 	}
 }

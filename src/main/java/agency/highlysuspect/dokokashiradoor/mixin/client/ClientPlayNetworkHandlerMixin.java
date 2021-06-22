@@ -11,7 +11,7 @@ public class ClientPlayNetworkHandlerMixin implements ClientPlayNetworkHandlerEx
 	@Unique private final ClientPlayerGatewayData data = new ClientPlayerGatewayData();
 	
 	@Override
-	public ClientPlayerGatewayData doko$getData() {
+	public ClientPlayerGatewayData dokodoor$getExtension() {
 		return data;
 	}
 }

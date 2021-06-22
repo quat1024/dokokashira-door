@@ -1,7 +1,6 @@
 package agency.highlysuspect.dokokashiradoor;
 
-import agency.highlysuspect.dokokashiradoor.net.DokoServerNet;
-import agency.highlysuspect.dokokashiradoor.util.PlayerEntityExt;
+import agency.highlysuspect.dokokashiradoor.net.DokoServerPlayNetworkHandler;
 import agency.highlysuspect.dokokashiradoor.util.GatewayMap;
 import agency.highlysuspect.dokokashiradoor.util.FunnySet;
 import agency.highlysuspect.dokokashiradoor.util.ServerPlayNetworkHandlerExt;
@@ -100,7 +99,6 @@ public class GatewayPersistentState extends PersistentState {
 	}
 	
 	private void putGateway(Gateway gateway) {
-		Init.LOGGER.info("putGateway {}", gateway);
 		gateways.addGateway(gateway);
 		
 		//gatewayChecksum ^= gateway.checksum();
@@ -111,13 +109,10 @@ public class GatewayPersistentState extends PersistentState {
 	}
 	
 	private void removeGatewayAt(BlockPos pos) {
-		Init.LOGGER.info("removeGatewayAt {}", pos);
-		
 		removeGateway(gateways.getGatewayAt(pos));
 	}
 	
 	private void removeGateway(Gateway gateway) {
-		Init.LOGGER.info("removeGateway {}", gateway);
 		gateways.removeGateway(gateway);
 		
 		gatewayChecksum = gateways.checksum(); //TODO delta update
@@ -145,18 +140,20 @@ public class GatewayPersistentState extends PersistentState {
 			putGateway(thisGateway);
 		}
 		
-		//find a matching gateway
+		//Pop a random seed
+		DokoServerPlayNetworkHandler ext = ServerPlayNetworkHandlerExt.cast(player.networkHandler).dokodoor$getExtension();
+		if(!ext.hasRandomSeed()) return false;
+		
 		Random random = new Random();
-		random.setSeed(PlayerEntityExt.cast(player).dokodoor$getGatewayRandomSeed());
+		random.setSeed(ext.popRandomSeed());
+		
+		//find a matching gateway
 		@Nullable Gateway other = findDifferentGateway(world, thisGateway, random);
 		
 		if(other == null) return false;
 		
 		//tp them to it
 		other.arrive(world, thisGateway, player);
-		
-		int newSeed = world.random.nextInt();
-		PlayerEntityExt.cast(player).dokodoor$setGatewayRandomSeed(newSeed);
 		
 		return true;
 	}
