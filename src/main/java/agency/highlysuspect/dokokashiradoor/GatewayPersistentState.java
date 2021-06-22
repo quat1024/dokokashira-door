@@ -120,7 +120,7 @@ public class GatewayPersistentState extends PersistentState {
 		markDirty();
 	}
 	
-	public void doorNeighborUpdate(ServerWorld world, BlockPos doorTopPos) {
+	public void helloDoor(ServerWorld world, BlockPos doorTopPos) {
 		knownDoors.add(doorTopPos);
 		
 		if(Util.isPositionAndNeighborsLoaded(world.getChunkManager(), doorTopPos)) {
