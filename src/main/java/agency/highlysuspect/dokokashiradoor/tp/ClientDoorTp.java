@@ -1,25 +1,34 @@
 package agency.highlysuspect.dokokashiradoor.tp;
 
+import agency.highlysuspect.dokokashiradoor.Init;
 import agency.highlysuspect.dokokashiradoor.gateway.Gateway;
 import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
 import agency.highlysuspect.dokokashiradoor.net.DokoClientNet;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.render.Camera;
+import net.minecraft.client.render.Frustum;
+import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.*;
+import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
 
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 public class ClientDoorTp {
 	public static boolean playerUseDoorClient(World world, BlockPos leftFromPos, BlockState doorTop, PlayerEntity player) {
 		//Preconditions!
-		if(!MinecraftClient.getInstance().options.getPerspective().isFirstPerson()) return false; // ^,,^
+		//if(!MinecraftClient.getInstance().options.getPerspective().isFirstPerson()) return false; // ^,,^
 		if(!(player instanceof ClientPlayerEntity cpe)) return false;
 		
 		DokoClientPlayNetworkHandler cpgd = DokoClientPlayNetworkHandler.get(cpe);
@@ -56,22 +65,74 @@ public class ClientDoorTp {
 		return true;
 	}
 	
-	private static boolean withinRangeAndLooking(World world, BlockPos leftFromPos, BlockState doorTop, PlayerEntity player) {
-		//TODO: The fancy ass raycasts
+	private static boolean withinRangeAndLooking(World world, BlockPos pos, BlockState doorTop, PlayerEntity player) {
+		//The door block and the 8 blocks surrounding it
+		Direction backwards = doorTop.get(DoorBlock.FACING);
+		Direction right = backwards.rotateYClockwise();
+		Direction left = backwards.rotateYCounterclockwise();
 		
-		//Standing in the same block as the door. No player-look check, because if you're able to stand this close and
-		//activate the door in the first place, your entire screen is probably taken up by the door frame.
-		Box interiorBox = Box.of(Vec3d.ofBottomCenter(leftFromPos), 0.3d, 0.3d, 0.3d);
-		if(world.getOtherEntities(null, interiorBox).contains(player)) return true;
+		Set<BlockPos> acceptableHitPositions = new HashSet<>();
+		acceptableHitPositions.add(pos);
+		acceptableHitPositions.add(pos.down());
+		acceptableHitPositions.add(pos.up());
+		acceptableHitPositions.add(pos.offset(right));
+		acceptableHitPositions.add(pos.offset(right).down());
+		acceptableHitPositions.add(pos.offset(right).up());
+		acceptableHitPositions.add(pos.offset(left));
+		acceptableHitPositions.add(pos.offset(left).down());
+		acceptableHitPositions.add(pos.offset(left).up());
 		
-		//The direction from the door's model towards the middle of the block.
-		Direction toInside = doorTop.get(DoorBlock.FACING);
+		//Based on reverse-engineering captureFrustum a little bit and tracing where the matrices come from
+		Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
 		
-		//This box pokes outside the front of the door by a tiny bit.
-		//If you're standing in this box, you need to be looking vaguely at the door.
-		Box exteriorBox = Box.of(Vec3d.ofBottomCenter(leftFromPos), 0.1d, 0.1d, 0.1d)
-			.offset(Vec3d.of(toInside.getVector()).multiply(-0.5d));
+		//I don't even know if getBasicProjectionMatrix is the right yawn name
+		double fov = MinecraftClient.getInstance().options.fov;
+		Matrix4f projection = MinecraftClient.getInstance().gameRenderer.getBasicProjectionMatrix((float) fov);
 		
-		return world.getOtherEntities(null, exteriorBox).contains(player);
+		//I wish I knew what to call these matrices lmao. The code just calls this "matrix4f" or something
+		Matrix4f bababooey = new Matrix4f();
+		bababooey.loadIdentity();
+		bababooey.multiply(Vec3f.POSITIVE_X.getDegreesQuaternion(camera.getPitch()));
+		bababooey.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(camera.getYaw() + 180f));
+		projection.multiply(bababooey);
+		projection.invert();
+
+		for(int i = 0; i < 4; i++) {
+			float dx = i < 2 ?      -1 : 1;
+			float dy = i % 2 == 0 ? -1 : 1;
+
+			//for(float k = 0; k < 1; k += 0.05) {
+			//Vector4f vec = new Vector4f(dx, dy, k, 1.0f);
+			Vector4f vec = new Vector4f(dx, dy, 1f, 1.0f);
+			
+			vec.transform(projection); //idk why "transform", it's a matrix-vector product
+			vec.normalizeProjectiveCoordinates();
+			
+			Vec3d worldSpace = new Vec3d(vec.getX(), vec.getY(), vec.getZ())
+				.normalize()
+				.multiply(3)
+				.add(camera.getPos());
+			
+			BlockHitResult hit = world.raycast(new RaycastContext(
+				camera.getPos(),
+				worldSpace,
+				RaycastContext.ShapeType.COLLIDER,
+				RaycastContext.FluidHandling.ANY,
+				player
+			));
+			
+			if(hit.getType() == HitResult.Type.MISS) return false;
+			
+			//world.addImportantParticle(ParticleTypes.END_ROD, true, hit.getPos().x, hit.getPos().y, hit.getPos().z, 0, 0, 0);
+			
+			if(hit.getBlockPos() == null || !acceptableHitPositions.contains(hit.getBlockPos())) {
+				return false;
+			}
+		}
+		
+		//MinecraftClient.getInstance().worldRenderer.captureFrustum();
+		//MinecraftClient.getInstance().worldRenderer.killFrustum();
+		
+		return true;
 	}
 }
