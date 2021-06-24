@@ -1,35 +1,12 @@
 package agency.highlysuspect.dokokashiradoor.util;
 
-import agency.highlysuspect.dokokashiradoor.Init;
-import com.mojang.serialization.Codec;
 import it.unimi.dsi.fastutil.ints.IntList;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.ChunkManager;
 
 import java.util.zip.CRC32;
 
 public class Util {
-	public static <T> T readNbt(Codec<T> codec, NbtElement nbt) {
-		return codec.parse(NbtOps.INSTANCE, nbt).getOrThrow(false, Init.LOGGER::error);
-	}
-	
-	public static <T> NbtElement writeNbt(Codec<T> codec, T thing) {
-		return codec.encodeStart(NbtOps.INSTANCE, thing).getOrThrow(false, Init.LOGGER::error);
-	}
-	
-	public static <T> T readNbtAllowPartial(Codec<T> codec, NbtElement nbt) {
-		return codec.parse(NbtOps.INSTANCE, nbt).getOrThrow(true, Init.LOGGER::error);
-	}
-	
-	public static <T> NbtElement writeNbtAllowPartial(Codec<T> codec, T thing) {
-		return codec.encodeStart(NbtOps.INSTANCE, thing).getOrThrow(true, Init.LOGGER::error);
-	}
-	
-	/**
-	 * Check that this position, as well as its four neighboring blocks, are loaded
-	 */
 	public static boolean isPositionAndNeighborsLoaded(ChunkManager cm, BlockPos pos) {
 		return allLoaded(cm, pos, pos.north(), pos.east(), pos.south(), pos.west());
 	}
@@ -49,6 +26,7 @@ public class Util {
 		}
 		
 		//Boo, hiss
-		return (int) ((crc.getValue()) ^ (crc.getValue() >> 32));
+		//I should just make the code actually operate on longs lol
+		return (int) (crc.getValue() ^ (crc.getValue() >> 32));
 	}
 }

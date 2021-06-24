@@ -1,5 +1,6 @@
 package agency.highlysuspect.dokokashiradoor;
 
+import agency.highlysuspect.dokokashiradoor.gateway.GatewayPersistentState;
 import agency.highlysuspect.dokokashiradoor.net.DokoServerNet;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;

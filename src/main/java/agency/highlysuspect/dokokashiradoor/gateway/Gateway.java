@@ -1,4 +1,4 @@
-package agency.highlysuspect.dokokashiradoor;
+package agency.highlysuspect.dokokashiradoor.gateway;
 
 import com.google.common.base.Preconditions;
 import com.mojang.serialization.Codec;
@@ -65,6 +65,10 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		return (!doorTopPos.equals(other.doorTopPos)) &&
 			doorBlock.equals(other.doorBlock) &&
 			frame.equals(other.frame);
+	}
+	
+	public boolean stillExistsInWorld(World world) {
+		return this.equals(recreate(world));
 	}
 	
 	public @Nullable Gateway recreate(World world) {

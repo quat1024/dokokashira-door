@@ -1,6 +1,5 @@
-package agency.highlysuspect.dokokashiradoor.util;
+package agency.highlysuspect.dokokashiradoor.gateway;
 
-import agency.highlysuspect.dokokashiradoor.Gateway;
 import com.mojang.serialization.Codec;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.util.math.BlockPos;
@@ -8,7 +7,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> {
 	public GatewayMap() {
@@ -105,5 +106,27 @@ public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> {
 	public void applyDelta(GatewayMap additions, GatewayMap removals) {
 		putAll(additions);
 		removeIf(removals::contains);
+	}
+	
+	public @Nullable Gateway findDifferentGateway(Gateway other, Random random, int maxTries, Predicate<Gateway> test) {
+		List<Gateway> otherGateways = toSortedList()
+			.stream()
+			.filter(x -> x.equalButDifferentPositions(other))
+			.collect(Collectors.toList());
+		
+		for(int tries = 0; tries < maxTries; tries++) {
+			if(otherGateways.size() == 0) return null;
+			
+			int i = random.nextInt(otherGateways.size());
+			Gateway candidate = otherGateways.get(i);
+			
+			if(test.test(candidate)) {
+				return candidate;
+			} else {
+				otherGateways.remove(i);
+			}
+		}
+		
+		return null;
 	}
 }

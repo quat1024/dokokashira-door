@@ -1,8 +1,10 @@
-package agency.highlysuspect.dokokashiradoor.net;
+package agency.highlysuspect.dokokashiradoor.tp;
 
-import agency.highlysuspect.dokokashiradoor.GatewayPersistentState;
+import agency.highlysuspect.dokokashiradoor.gateway.GatewayPersistentState;
 import agency.highlysuspect.dokokashiradoor.Init;
-import agency.highlysuspect.dokokashiradoor.util.GatewayMap;
+import agency.highlysuspect.dokokashiradoor.net.DokoServerNet;
+import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
+import agency.highlysuspect.dokokashiradoor.util.ServerPlayNetworkHandlerExt;
 import agency.highlysuspect.dokokashiradoor.util.Util;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -18,6 +20,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class DokoServerPlayNetworkHandler {
+	public DokoServerPlayNetworkHandler(ServerPlayNetworkHandler spnh) {
+		this.spnh = spnh;
+	}
+	
+	public static DokoServerPlayNetworkHandler getFor(ServerPlayerEntity player) {
+		return ((ServerPlayNetworkHandlerExt) player.networkHandler).dokodoor$getExtension();
+	}
+	
+	private final ServerPlayNetworkHandler spnh;
+	
 	//Gateways that we're sure the client knows about.
 	private final Map<RegistryKey<World>, GatewayMap> knownGateways = new HashMap<>();
 	
@@ -47,7 +59,7 @@ public class DokoServerPlayNetworkHandler {
 	//How many randomseed-ack packets I expect to receive from the player.
 	private int pendingRandomSeedChecksums = 0;
 	
-	public void tick(ServerPlayNetworkHandler spnh) {
+	public void tick() {
 		ServerWorld world = spnh.player.getServerWorld();
 		
 		if(world.getTime() % 20 == 0) {
@@ -57,14 +69,14 @@ public class DokoServerPlayNetworkHandler {
 			int ackChecksum = acknowledgedChecksums.getInt(wkey);
 			
 			if(gps.getChecksum() != ackChecksum) {
-				sendDeltaGatewayUpdate(spnh, world);
+				sendDeltaGatewayUpdate(world);
 			}
 			
-			fillRandomSeeds(spnh, world);
+			fillRandomSeeds(world);
 		}
 	}
 	
-	public void ackGatewayChecksum(ServerPlayNetworkHandler spnh, ServerWorld world, int checksum) {
+	public void ackGatewayChecksum(ServerWorld world, int checksum) {
 		GatewayPersistentState gps = GatewayPersistentState.getFor(world);
 		this.acknowledgedChecksums.put(world.getRegistryKey(), checksum);
 		
@@ -77,23 +89,23 @@ public class DokoServerPlayNetworkHandler {
 				knownGateways.put(world.getRegistryKey(), gps.getAllGateways().copy());
 			} else {
 				Init.LOGGER.warn("{}: Expected gateway checksum {}, but they replied with {}. Sending them a full gateway update.", spnh.player.getEntityName(), gps.getChecksum(), checksum);
-				sendFullGatewayUpdate(spnh, world);
+				sendFullGatewayUpdate(world);
 			}
 		}
 	}
 	
-	public void onDimensionChange(ServerPlayNetworkHandler spnh, ServerWorld destination) {
-		sendDeltaGatewayUpdate(spnh, destination);
+	public void onDimensionChange(ServerWorld destination) {
+		sendDeltaGatewayUpdate(destination);
 	}
 	
-	public void sendFullGatewayUpdate(ServerPlayNetworkHandler spnh, ServerWorld world) {
+	public void sendFullGatewayUpdate(ServerWorld world) {
 		RegistryKey<World> wkey = world.getRegistryKey();
 		GatewayPersistentState gps = GatewayPersistentState.getFor(world);
 		
 		DokoServerNet.sendFullGatewayUpdate(spnh.player, wkey, gps.getAllGateways());
 	}
 	
-	public void sendDeltaGatewayUpdate(ServerPlayNetworkHandler spnh, ServerWorld world) {
+	public void sendDeltaGatewayUpdate(ServerWorld world) {
 		ServerPlayerEntity player = spnh.player;
 		RegistryKey<World> wkey = world.getRegistryKey();
 		GatewayPersistentState gps = GatewayPersistentState.getFor(world);
@@ -113,7 +125,7 @@ public class DokoServerPlayNetworkHandler {
 		return randomSeeds.removeInt(0);
 	}
 	
-	public void fillRandomSeeds(ServerPlayNetworkHandler spnh, ServerWorld world) {
+	public void fillRandomSeeds(ServerWorld world) {
 		if(randomSeeds.size() < RANDOM_SEED_BUFFER_SIZE) {
 			int howMany = RANDOM_SEED_BUFFER_SIZE - randomSeeds.size();
 			IntList moreSeeds = new IntArrayList(howMany);
@@ -127,7 +139,7 @@ public class DokoServerPlayNetworkHandler {
 		}
 	}
 	
-	public void ackRandomSeedChecksum(ServerPlayNetworkHandler spnh, int checksum) {
+	public void ackRandomSeedChecksum(int checksum) {
 		int seedChecksum = Util.checksumIntList(randomSeeds);
 		
 		pendingRandomSeedChecksums--;

@@ -1,43 +1,38 @@
-package agency.highlysuspect.dokokashiradoor;
+package agency.highlysuspect.dokokashiradoor.gateway;
 
-import agency.highlysuspect.dokokashiradoor.net.DokoServerPlayNetworkHandler;
-import agency.highlysuspect.dokokashiradoor.util.GatewayMap;
-import agency.highlysuspect.dokokashiradoor.util.FunnySet;
-import agency.highlysuspect.dokokashiradoor.util.ServerPlayNetworkHandlerExt;
+import agency.highlysuspect.dokokashiradoor.util.CodecCrap;
 import agency.highlysuspect.dokokashiradoor.util.Util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.enums.DoubleBlockHalf;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.chunk.ChunkManager;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class GatewayPersistentState extends PersistentState {
 	public GatewayPersistentState() {
 		gateways = new GatewayMap();
-		knownDoors = new FunnySet<>();
+		knownDoors = new ObjectOpenHashSet<>();
 	}
 	
 	private final GatewayMap gateways;
 	private int gatewayChecksum;
-	private final FunnySet<BlockPos> knownDoors;
+	private final ObjectOpenHashSet<BlockPos> knownDoors;
 	
 	public static final Codec<GatewayPersistentState> CODEC = RecordCodecBuilder.create(i -> i.group(
 		GatewayMap.CODEC.fieldOf("gateways").forGetter(gps -> gps.gateways),
-		FunnySet.codec(BlockPos.CODEC).fieldOf("knownDoors").forGetter(gps -> gps.knownDoors)
+		CodecCrap.objectOpenHashSetCodec(BlockPos.CODEC).fieldOf("knownDoors").forGetter(gps -> gps.knownDoors)
 	).apply(i, GatewayPersistentState::new));
 	
 	//Deserialization constructor
-	private GatewayPersistentState(GatewayMap gateways, FunnySet<BlockPos> knownDoors) {
+	private GatewayPersistentState(GatewayMap gateways, ObjectOpenHashSet<BlockPos> knownDoors) {
 		this.gateways = gateways;
 		this.knownDoors = knownDoors;
 		
@@ -131,67 +126,15 @@ public class GatewayPersistentState extends PersistentState {
 		}
 	}
 	
-	public boolean playerUseDoor(ServerWorld world, BlockPos doorTopPos, ServerPlayerEntity player) {
-		//If the player is interacting with a gateway
-		Gateway thisGateway = Gateway.readFromWorld(world, doorTopPos);
-		if(thisGateway == null) return false;
-		
-		if(!thisGateway.equals(gateways.getGatewayAt(doorTopPos))) {
-			putGateway(thisGateway);
-		}
-		
-		//Pop a random seed
-		DokoServerPlayNetworkHandler ext = ServerPlayNetworkHandlerExt.cast(player.networkHandler).dokodoor$getExtension();
-		if(!ext.hasRandomSeed()) return false;
-		
-		Random random = new Random();
-		random.setSeed(ext.popRandomSeed());
-		
-		//find a matching gateway
-		@Nullable Gateway other = findDifferentGateway(world, thisGateway, random);
-		
-		if(other == null) return false;
-		
-		//tp them to it
-		other.arrive(world, thisGateway, player);
-		
-		return true;
-	}
-	
-	public @Nullable Gateway findDifferentGateway(ServerWorld world, Gateway thisGateway, Random random) {
-		List<Gateway> otherGateways = gateways
-			.toSortedList()
-			.stream()
-			.filter(other -> other.equalButDifferentPositions(thisGateway))
-			.collect(Collectors.toList());
-		
-		for(int tries = 0; tries < 10; tries++) {
-			if(otherGateways.size() == 0) return null;
-			
-			//Make EXTRA sure that the gateway still exists in the world.
-			int i = random.nextInt(otherGateways.size());
-			Gateway other = otherGateways.get(i);
-			Gateway recreation = other.recreate(world);
-			if(other.equals(recreation)) {
-				return other;
-			} else {
-				otherGateways.remove(i);
-				removeGateway(other);
-			}
-		}
-		
-		return null;
-	}
-	
 	//Serialization stuff
 	@Override
 	public NbtCompound writeNbt(NbtCompound nbt) {
-		nbt.put("Gateways", Util.writeNbt(CODEC, this));
+		nbt.put("Gateways", CodecCrap.writeNbt(CODEC, this));
 		return nbt;
 	}
 	
 	public static GatewayPersistentState fromNbt(NbtCompound nbt) {
-		return Util.readNbtAllowPartial(CODEC, nbt.get("Gateways"));
+		return CodecCrap.readNbtAllowPartial(CODEC, nbt.get("Gateways"));
 	}
 	
 	public GatewayMap getAllGateways() {

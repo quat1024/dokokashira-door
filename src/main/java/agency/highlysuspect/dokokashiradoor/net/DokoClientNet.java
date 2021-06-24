@@ -1,8 +1,8 @@
-package agency.highlysuspect.dokokashiradoor.client;
+package agency.highlysuspect.dokokashiradoor.net;
 import agency.highlysuspect.dokokashiradoor.Init;
-import agency.highlysuspect.dokokashiradoor.net.DokoMessages;
-import agency.highlysuspect.dokokashiradoor.util.GatewayMap;
-import agency.highlysuspect.dokokashiradoor.util.Util;
+import agency.highlysuspect.dokokashiradoor.tp.DokoClientPlayNetworkHandler;
+import agency.highlysuspect.dokokashiradoor.util.CodecCrap;
+import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -10,6 +10,7 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
@@ -27,10 +28,10 @@ public class DokoClientNet implements ClientModInitializer {
 				RegistryKey<World> worldKey = RegistryKey.of(Registry.WORLD_KEY, worldKeyId);
 				
 				if(nbt == null) { Init.LOGGER.error("Recv null gatewaymap nbt"); return; }
-				GatewayMap map = Util.readNbt(GatewayMap.CODEC, nbt.get("full_update"));
+				GatewayMap map = CodecCrap.readNbt(GatewayMap.CODEC, nbt.get("full_update"));
 				if(map == null) { Init.LOGGER.error("Recv invalid gatewaymap nbt"); return; }
 				
-				ClientPlayerGatewayData.get().ifPresent(d -> d.fullGatewayUpdate(worldKey, map));
+				DokoClientPlayNetworkHandler.get(client.player).fullGatewayUpdate(worldKey, map);
 			});
 		});
 		
@@ -39,38 +40,52 @@ public class DokoClientNet implements ClientModInitializer {
 			NbtCompound nbt = buf.readNbt();
 			
 			client.execute(() -> {
+				if(client.player == null) { Init.LOGGER.error("Recv gateway update but no player. Ignoring"); return; }
 				if(nbt == null) { Init.LOGGER.error("Received null deltaupdate gateway map nbt"); return; }
 				
 				RegistryKey<World> worldKey = RegistryKey.of(Registry.WORLD_KEY, worldKeyId);
 				
-				GatewayMap additions = Util.readNbt(GatewayMap.CODEC, nbt.get("additions"));
+				GatewayMap additions = CodecCrap.readNbt(GatewayMap.CODEC, nbt.get("additions"));
 				if(additions == null) { Init.LOGGER.error("received invalid gatewaymap additions"); return; }
 				
-				GatewayMap removals = Util.readNbt(GatewayMap.CODEC, nbt.get("removals"));
+				GatewayMap removals = CodecCrap.readNbt(GatewayMap.CODEC, nbt.get("removals"));
 				if(removals == null) { Init.LOGGER.error("received invalid gatewaymap removals"); return; }
 				
-				ClientPlayerGatewayData.get().ifPresent(d -> {
-					PacketByteBuf yes = PacketByteBufs.create();
-					yes.writeIdentifier(worldKey.getValue());
-					yes.writeInt(d.deltaGatewayUpdate(worldKey, additions, removals));
-					responseSender.sendPacket(DokoMessages.DELTA_GATEWAY_ACK, yes);
-				});
+				DokoClientPlayNetworkHandler cpgd = DokoClientPlayNetworkHandler.get(client.player);
+				
+				PacketByteBuf yes = PacketByteBufs.create();
+				yes.writeIdentifier(worldKey.getValue());
+				yes.writeInt(cpgd.deltaGatewayUpdate(worldKey, additions, removals));
+				responseSender.sendPacket(DokoMessages.DELTA_GATEWAY_ACK, yes);
 			});
 		});
 		
 		ClientPlayNetworking.registerGlobalReceiver(DokoMessages.ADD_RANDOM_SEEDS, (client, handler, buf, responseSender) -> {
 			IntList newSeeds = buf.readIntList();
 			
-			client.execute(() -> ClientPlayerGatewayData.get().ifPresent(d -> {
+			client.execute(() -> {
+				if(client.player == null) { Init.LOGGER.error("Recv random seeds but no player. Ignoring"); return; }
+				DokoClientPlayNetworkHandler cpgd = DokoClientPlayNetworkHandler.get(client.player);
+				
 				PacketByteBuf yes = PacketByteBufs.create();
-				yes.writeInt(d.deltaRandomSeeds(newSeeds));
+				yes.writeInt(cpgd.deltaRandomSeeds(newSeeds));
 				responseSender.sendPacket(DokoMessages.RANDOM_SEEDS_ACK, yes);
-			}));
+			});
 		});
 		
 		ClientPlayNetworking.registerGlobalReceiver(DokoMessages.SET_RANDOM_SEEDS, (client, handler, buf, responseSender) -> {
 			IntList newSeeds = buf.readIntList();
-			client.execute(() -> ClientPlayerGatewayData.get().ifPresent(d -> d.fullRandomSeeds(newSeeds)));
+			client.execute(() -> {
+				if(client.player == null) { Init.LOGGER.error("Recv random seeds but no player. Ignoring"); return; }
+				DokoClientPlayNetworkHandler.get(client.player).fullRandomSeeds(newSeeds);
+			});
 		});
+	}
+	
+	public static void sendDoorTeleport(BlockPos leftFrom, BlockPos destination) {
+		PacketByteBuf buf = PacketByteBufs.create();
+		buf.writeBlockPos(leftFrom);
+		buf.writeBlockPos(destination);
+		ClientPlayNetworking.send(DokoMessages.DOOR_TELEPORT_REQUEST, buf);
 	}
 }
