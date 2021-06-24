@@ -8,9 +8,6 @@ For Modfest 1.17.
 
 ## Todo
 
-* Possibly throttle checksum stuff, or only send it once.
-* Possibly a way for the server to go "something isn't right. disable prediction on your end"
 * Test more with `clumsy`.
-* Test circumstances where the client is not ready to perform prediction.
 * Fix door sound effects.
 * Add the actual "is the player close to the door" check.
