@@ -1,8 +1,8 @@
 package agency.highlysuspect.dokokashiradoor.tp;
 
 import agency.highlysuspect.dokokashiradoor.Init;
-import agency.highlysuspect.dokokashiradoor.util.ClientPlayNetworkHandlerExt;
 import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
+import agency.highlysuspect.dokokashiradoor.util.ClientPlayNetworkHandlerExt;
 import agency.highlysuspect.dokokashiradoor.util.Util;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -11,7 +11,8 @@ import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DokoClientPlayNetworkHandler {
 	private final Map<RegistryKey<World>, GatewayMap> gatewayStorage = new HashMap<>();

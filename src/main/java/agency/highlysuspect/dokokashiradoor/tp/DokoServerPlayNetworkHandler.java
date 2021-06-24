@@ -1,9 +1,9 @@
 package agency.highlysuspect.dokokashiradoor.tp;
 
-import agency.highlysuspect.dokokashiradoor.gateway.GatewayPersistentState;
 import agency.highlysuspect.dokokashiradoor.Init;
-import agency.highlysuspect.dokokashiradoor.net.DokoServerNet;
 import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
+import agency.highlysuspect.dokokashiradoor.gateway.GatewayPersistentState;
+import agency.highlysuspect.dokokashiradoor.net.DokoServerNet;
 import agency.highlysuspect.dokokashiradoor.util.ServerPlayNetworkHandlerExt;
 import agency.highlysuspect.dokokashiradoor.util.Util;
 import it.unimi.dsi.fastutil.ints.IntArrayList;

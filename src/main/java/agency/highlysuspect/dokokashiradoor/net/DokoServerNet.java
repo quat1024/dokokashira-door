@@ -1,9 +1,9 @@
 package agency.highlysuspect.dokokashiradoor.net;
 
+import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
 import agency.highlysuspect.dokokashiradoor.tp.DokoServerPlayNetworkHandler;
 import agency.highlysuspect.dokokashiradoor.tp.ServerDoorTp;
 import agency.highlysuspect.dokokashiradoor.util.CodecCrap;
-import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;

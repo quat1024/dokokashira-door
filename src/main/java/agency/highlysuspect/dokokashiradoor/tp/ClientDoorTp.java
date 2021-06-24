@@ -1,14 +1,17 @@
 package agency.highlysuspect.dokokashiradoor.tp;
 
 import agency.highlysuspect.dokokashiradoor.gateway.Gateway;
-import agency.highlysuspect.dokokashiradoor.net.DokoClientNet;
 import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
+import agency.highlysuspect.dokokashiradoor.net.DokoClientNet;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.*;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 import java.util.Random;

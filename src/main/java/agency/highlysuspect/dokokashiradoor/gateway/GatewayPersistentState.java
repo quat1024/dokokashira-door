@@ -14,7 +14,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.chunk.ChunkManager;
 
-import java.util.*;
+import java.util.ArrayList;
 
 public class GatewayPersistentState extends PersistentState {
 	public GatewayPersistentState() {
