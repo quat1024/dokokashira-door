@@ -1,10 +1,13 @@
 package agency.highlysuspect.dokokashiradoor.util;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldEvents;
+import net.minecraft.world.event.GameEvent;
 
 public class DoorUtil {
 	public static void sneakyOpenDoor(World world, BlockPos doorTop, BlockState topState) {
@@ -15,9 +18,15 @@ public class DoorUtil {
 		sneakySetBlockstate(world, doorTop.down(), bottomOpen);
 	}
 	
-	public static void loudlyOpenDoor(Entity openerForGameEvents, World world, BlockPos doorTop, BlockState topState) {
-		DoorBlock db = (DoorBlock) topState.getBlock();
-		db.setOpen(openerForGameEvents, world, topState, doorTop, true);
+	public static void silentlyOpenDoor(Entity openerForGameEvents, World world, BlockPos doorTop, BlockState topState) {
+		world.setBlockState(doorTop, topState.with(DoorBlock.OPEN, true), Block.NOTIFY_LISTENERS | Block.REDRAW_ON_MAIN_THREAD);
+		//this.playOpenCloseSound(world, pos, open);
+		world.emitGameEvent(openerForGameEvents, GameEvent.BLOCK_OPEN, doorTop);
+		//db.setOpen(openerForGameEvents, world, topState, doorTop, true);
+	}
+	
+	public static void playOpenSound(World world, BlockPos pos) {
+		world.syncWorldEvent(null, WorldEvents.WOODEN_DOOR_OPENS, pos, 0);
 	}
 	
 	public static void sneakySwapHinge(World world, BlockPos doorTop, BlockState topState) {

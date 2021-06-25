@@ -1,5 +1,6 @@
 package agency.highlysuspect.dokokashiradoor.tp;
 
+import agency.highlysuspect.dokokashiradoor.client.OffsetEntityTrackingSoundInstance;
 import agency.highlysuspect.dokokashiradoor.gateway.Gateway;
 import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
 import agency.highlysuspect.dokokashiradoor.net.DokoClientNet;
@@ -52,6 +53,9 @@ public class ClientDoorTp {
 		
 		//3. Move the player clientside
 		destination.arrive(world, thisGateway, player);
+		
+		//4. Play the special clientside door-opening sound. This one follows the player around as they teleport.
+		MinecraftClient.getInstance().getSoundManager().play(OffsetEntityTrackingSoundInstance.doorOpen(player, destination.doorTopPos(), null, world.random));
 		
 		return true;
 	}
