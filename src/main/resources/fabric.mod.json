@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "dokokashira_door",
   "version": "${version}",
-
+	
   "name": "Dokokashira Door",
   "description": "\"Enhances\" vanilla doors",
   "authors": [
@@ -11,10 +11,10 @@
   "contact": {
     "homepage": "https://highlysuspect.agency/"
   },
-
+	
   "license": "LGPL-3.0-or-later",
-  "icon": "assets/modid/icon.png",
-
+  "icon": "assets/dokokashira_door/icon_128.png",
+	
   "environment": "*",
   "entrypoints": {
     "main": [
@@ -27,7 +27,7 @@
   "mixins": [
     "dokokashira_door.mixins.json"
   ],
-
+	
   "depends": {
     "fabricloader": ">=0.11.3",
     "fabric": "*",
