@@ -31,14 +31,6 @@ public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> {
 		remove(g.doorTopPos());
 	}
 	
-	public boolean hasGatewayAt(BlockPos pos) {
-		return containsKey(pos);
-	}
-	
-	public void removeGatewayAt(BlockPos pos) {
-		remove(pos);
-	}
-	
 	public @Nullable Gateway getGatewayAt(BlockPos pos) {
 		return get(pos);
 	}
@@ -46,6 +38,16 @@ public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> {
 	public boolean contains(Gateway other) {
 		//containsValue is a linear search
 		return containsKey(other.doorTopPos()) && get(other.doorTopPos()).equals(other);
+	}
+	
+	/**
+	 * containsValue is a linear search over the values, and should not be used
+	 * @see GatewayMap#contains(Gateway) 
+	 */
+	@Override
+	@Deprecated
+	public boolean containsValue(Object v) {
+		return super.containsValue(v);
 	}
 	
 	public GatewayMap copy() {
@@ -71,6 +73,12 @@ public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> {
 	}
 	
 	public List<Gateway> toSortedList() {
+		//Alright, yeah. This is kinda of a weird collection.
+		//It's a map, to look up gateways by their position,
+		//it's a set, to look up gateways by their identity,
+		//and it's a sorted list, for random-number accessible indexing, all at the same time.
+		//Here lies my hopes and dreams: i simply sort the list on demand, since you don't need the
+		//actually sorted-list view very often.
 		List<Gateway> list = toUnsortedList();
 		list.sort(null);
 		return list;
@@ -83,6 +91,7 @@ public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> {
 	public int checksum() {
 		int checksum = 0;
 		
+		//Sorting the list first isn't needed since XOR commutes.
 		for(Gateway g : values()) {
 			checksum ^= g.checksum();
 		}
@@ -90,8 +99,11 @@ public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> {
 		return checksum;
 	}
 	
+	//we have multiple return at home :relieved:
 	public static record Delta(GatewayMap additions, GatewayMap removals) {}
 	public Delta diffAgainst(GatewayMap other) {
+		if(this.equals(other)) return new Delta(new GatewayMap(), new GatewayMap());
+		
 		//Gateways that exist in this map, but not the other map, should be *added to* the other map.
 		GatewayMap additions = copy();
 		additions.removeIf(other::contains);

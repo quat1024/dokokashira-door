@@ -30,15 +30,15 @@ public class DoorBlockMixin extends Block {
 		method = "onUse",
 		at = @At(
 			value = "INVOKE",
-			//The last thing that DoorBlock does before returning a successful ActionResult
-			target = "Lnet/minecraft/world/World;emitGameEvent(Lnet/minecraft/entity/Entity;Lnet/minecraft/world/event/GameEvent;Lnet/minecraft/util/math/BlockPos;)V",
-			shift = At.Shift.AFTER
-		)
+			target = "Lnet/minecraft/block/BlockState;cycle(Lnet/minecraft/state/property/Property;)Ljava/lang/Object;"
+		),
+		cancellable = true
 	)
 	private void whenUsed(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit, CallbackInfoReturnable<ActionResult> cir) {
-		if(player != null && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER && state.get(DoorBlock.OPEN)) {
-			if(world.isClient()) {
-				boolean todo = ClientDoorTp.playerUseDoorClient(world, pos, state, player);
+		if(world.isClient() && player != null && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER && !state.get(DoorBlock.OPEN)) {
+			boolean worked = ClientDoorTp.playerUseDoorClient(world, pos, state, player);
+			if(worked) {
+				cir.setReturnValue(ActionResult.success(true));
 			}
 		}
 	}
@@ -48,7 +48,7 @@ public class DoorBlockMixin extends Block {
 		at = @At("HEAD")
 	)
 	private void whenNeighborUpdate(BlockState state, World world, BlockPos pos, Block block, BlockPos fromPos, boolean notify, CallbackInfo ci) {
-		if(!world.isClient && world instanceof ServerWorld sworld && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER) {
+		if(world instanceof ServerWorld sworld && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER) {
 			GatewayPersistentState.getFor(sworld).helloDoor(sworld, pos.toImmutable());
 		}
 	}
@@ -58,7 +58,7 @@ public class DoorBlockMixin extends Block {
 	public void onBlockAdded(BlockState state, World world, BlockPos pos, BlockState oldState, boolean notify) {
 		super.onBlockAdded(state, world, pos, oldState, notify);
 		
-		if(!world.isClient && world instanceof ServerWorld sworld && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER) {
+		if(world instanceof ServerWorld sworld && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER) {
 			GatewayPersistentState.getFor(sworld).helloDoor(sworld, pos.toImmutable());
 		}
 	}

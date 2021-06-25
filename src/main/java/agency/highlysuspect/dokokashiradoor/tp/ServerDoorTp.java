@@ -33,21 +33,27 @@ public class ServerDoorTp {
 		ServerWorld world = player.getServerWorld();
 		GatewayPersistentState gps = GatewayPersistentState.getFor(world);
 		
+		//Too far away
+		if(player.getPos().squaredDistanceTo(Vec3d.ofBottomCenter(leftFromPos)) > 6 * 6) return false;
+		
+		//Find the gateway at this position
 		@SuppressWarnings("SuspiciousNameCombination") //leftFromPos - Spurious warning, but good effort intellij
 		Gateway thisGateway = Gateway.readFromWorld(world, leftFromPos);
 		if(thisGateway == null) return false;
 		
+		//Pop the next random seed
 		DokoServerPlayNetworkHandler ext = DokoServerPlayNetworkHandler.getFor(player);
 		if(!ext.hasRandomSeed()) return false;
 		Random random = new Random();
 		random.setSeed(ext.popRandomSeed());
 		
+		//Find a different gateway using that random seed
 		@Nullable Gateway destination = gps.getAllGateways().findDifferentGateway(thisGateway, random, 10, candidate -> candidate.stillExistsInWorld(world));
 		
 		//Only if it exists and matches what the player expected it to be,
 		if(destination == null || !destination.doorTopPos().equals(destPos)) return false;
 		
-		//tp the player to it.
+		//tp the player to it
 		destination.arrive(world, thisGateway, player);
 		return true;
 	}

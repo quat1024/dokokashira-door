@@ -61,7 +61,7 @@ public class GatewayPersistentState extends PersistentState {
 			
 			//Check if there is a gateway at this door
 			Gateway inWorld = Gateway.readFromWorld(world, pos);
-			if(inWorld != null && !gateways.containsValue(inWorld)) {
+			if(inWorld != null && !gateways.contains(inWorld)) {
 				putGateway(inWorld);
 			}
 			
@@ -95,11 +95,7 @@ public class GatewayPersistentState extends PersistentState {
 	
 	private void putGateway(Gateway gateway) {
 		gateways.addGateway(gateway);
-		
-		//gatewayChecksum ^= gateway.checksum();
-		//assert gatewayChecksum == gateways.checksum();
 		gatewayChecksum = gateways.checksum();
-		
 		markDirty();
 	}
 	
@@ -109,9 +105,7 @@ public class GatewayPersistentState extends PersistentState {
 	
 	private void removeGateway(Gateway gateway) {
 		gateways.removeGateway(gateway);
-		
-		gatewayChecksum = gateways.checksum(); //TODO delta update
-		
+		gatewayChecksum = gateways.checksum();
 		markDirty();
 	}
 	

@@ -35,8 +35,8 @@ public class DokoClientPlayNetworkHandler {
 		return !randomSeeds.isEmpty();
 	}
 	
-	public int popRandomSeed() {
-		return randomSeeds.removeInt(0);
+	public void popRandomSeed() {
+		randomSeeds.removeInt(0);
 	}
 	
 	public int peekRandomSeed() {

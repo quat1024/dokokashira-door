@@ -1,5 +1,6 @@
 package agency.highlysuspect.dokokashiradoor.gateway;
 
+import agency.highlysuspect.dokokashiradoor.util.DoorUtil;
 import com.google.common.base.Preconditions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
@@ -117,19 +118,19 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		return new Gateway(doorTopPos, doorBlock, frameBlocks, forwards);
 	}
 	
-	public void arrive(World world, Gateway leftFrom, PlayerEntity player) {
+	public void arrive(World world, Gateway departureGateway, PlayerEntity player) {
 		//Find the vector from (current door -> player position)
-		Vec3d currentDifference = player.getPos().subtract(Vec3d.ofBottomCenter(leftFrom.doorTopPos));
+		Vec3d currentDifference = player.getPos().subtract(Vec3d.ofBottomCenter(departureGateway.doorTopPos));
 		Vec3d velocity = player.getVelocity();
 		float yawAdd = 0;
 		
 		//Rotate that vector according to the difference in angle between the two doors
-		if(facing != leftFrom.facing) {
-			if(facing.rotateYClockwise() == leftFrom.facing) {
+		if(facing != departureGateway.facing) {
+			if(facing.rotateYClockwise() == departureGateway.facing) {
 				currentDifference = new Vec3d(currentDifference.z, currentDifference.y, -currentDifference.x);
 				velocity =          new Vec3d(velocity.z,          velocity.y,          -velocity.x);
 				yawAdd = 270;
-			} else if(facing.getOpposite() == leftFrom.facing) {
+			} else if(facing.getOpposite() == departureGateway.facing) {
 				currentDifference = new Vec3d(-currentDifference.x, currentDifference.y, -currentDifference.z);
 				velocity =          new Vec3d(-velocity.x,          velocity.y,          -velocity.z);
 				yawAdd = 180;
@@ -141,10 +142,10 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		}
 		
 		//Apply that vector to the current door position
-		Vec3d destPos = currentDifference.add(Vec3d.ofBottomCenter(doorTopPos));
+		Vec3d arrivalPos = currentDifference.add(Vec3d.ofBottomCenter(doorTopPos));
 		
 		//Send the player off
-		player.setPosition(destPos); //this one updates the boundingbox as well
+		player.setPosition(arrivalPos); //this one updates the boundingbox as well
 		player.setYaw(player.getYaw() + yawAdd);
 		player.setVelocity(velocity);
 		
@@ -160,18 +161,23 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 			splayer.networkHandler.syncWithPlayerPosition();
 		}
 		
-		BlockState departureDoorState = world.getBlockState(leftFrom.doorTopPos);
+		BlockState departureDoorState = world.getBlockState(departureGateway.doorTopPos);
 		BlockState arrivalDoorState = world.getBlockState(doorTopPos);
 		
 		//On the client, if the destination chunk is not currently loaded, this check fails.
 		if(departureDoorState.getBlock() instanceof DoorBlock && arrivalDoorState.getBlock() instanceof DoorBlock) {
 			//Sneakily update the hinge on the destination door to match the hinge of the source door
 			//(makes it look better)
-			DoorHinge hinge = departureDoorState.get(DoorBlock.HINGE);
-			world.setBlockState(doorTopPos, arrivalDoorState.with(DoorBlock.HINGE, hinge));
-			//Block-update takes care of the bottom half
+			DoorHinge deptHinge = departureDoorState.get(DoorBlock.HINGE);
+			DoorHinge myHinge = arrivalDoorState.get(DoorBlock.HINGE);
+			if(deptHinge != myHinge) {
+				DoorUtil.sneakySwapHinge(world, doorTopPos, arrivalDoorState);
+				arrivalDoorState = world.getBlockState(doorTopPos);
+			}
 			
-			doorBlock.setOpen(null, world, arrivalDoorState, doorTopPos, true);
+			//Open the src and destination doors
+			DoorUtil.sneakyOpenDoor(world, departureGateway.doorTopPos, departureDoorState);
+			DoorUtil.loudlyOpenDoor(player, world, this.doorTopPos, arrivalDoorState);
 		}
 	}
 	
@@ -182,6 +188,8 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 	
 	//Cannot use raw hashCode because Block hashcodes are object-identity based
 	//so between server/client, they're gonna be different
+	//Raw IDs are not *guaranteed* to be the same (see Reshifter, lol), but they *should* be
+	//in well-behaved modpacks when clients have the same mod list as the server. Idk.
 	public int checksum() {
 		int checksum = doorTopPos.hashCode();
 		checksum *= 31;

@@ -1,20 +1,14 @@
 package agency.highlysuspect.dokokashiradoor.tp;
 
-import agency.highlysuspect.dokokashiradoor.Init;
 import agency.highlysuspect.dokokashiradoor.gateway.Gateway;
 import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
 import agency.highlysuspect.dokokashiradoor.net.DokoClientNet;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.Frustum;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.particle.ParticleTypes;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.*;
@@ -27,10 +21,7 @@ import java.util.Set;
 
 public class ClientDoorTp {
 	public static boolean playerUseDoorClient(World world, BlockPos leftFromPos, BlockState doorTop, PlayerEntity player) {
-		//Preconditions!
-		//if(!MinecraftClient.getInstance().options.getPerspective().isFirstPerson()) return false; // ^,,^
-		if(!(player instanceof ClientPlayerEntity cpe)) return false;
-		
+		if(!(player instanceof ClientPlayerEntity cpe)) return false; //Mainly a pattern-cast but also rejects OtherClientPlayers
 		DokoClientPlayNetworkHandler cpgd = DokoClientPlayNetworkHandler.get(cpe);
 		
 		GatewayMap gateways = cpgd.getGatewaysFor(world);
@@ -101,8 +92,6 @@ public class ClientDoorTp {
 			float dx = i < 2 ?      -1 : 1;
 			float dy = i % 2 == 0 ? -1 : 1;
 
-			//for(float k = 0; k < 1; k += 0.05) {
-			//Vector4f vec = new Vector4f(dx, dy, k, 1.0f);
 			Vector4f vec = new Vector4f(dx, dy, 1f, 1.0f);
 			
 			vec.transform(projection); //idk why "transform", it's a matrix-vector product
@@ -129,9 +118,6 @@ public class ClientDoorTp {
 				return false;
 			}
 		}
-		
-		//MinecraftClient.getInstance().worldRenderer.captureFrustum();
-		//MinecraftClient.getInstance().worldRenderer.killFrustum();
 		
 		return true;
 	}
