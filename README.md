@@ -14,9 +14,7 @@ Since clients need to predict their teleportation destination in order to make t
 
 # Todo list
 
-* Test more with `clumsy`.
 * Enforce that block*states* match, not only blocks. Will need to rotate them.
-* Fix door sound effects.
 
 ## Blah
 
