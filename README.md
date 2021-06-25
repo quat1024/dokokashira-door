@@ -12,12 +12,12 @@ Even on crappy internet connections, the effect happens instantly. (Doesn't mean
 
 Since clients need to predict their teleportation destination in order to make the effect work, the list of gateways is sent to all clients. The Venn diagram intersection between "people who want to install this mod" and "people who run servers where 'coordinate leaks' are a big deal" is probably exactly zero people large. But now you know.
 
-# Todo list
+## Todo?
 
 * Enforce that block*states* match, not only blocks. Will need to rotate them.
 
-## Blah
+# Blah
 
-Dased off a silly editing gimmick from *PiroPito First Playthrough of Minecraft*, which I'm hearing is a Doraemon reference?
+Based off a silly editing gimmick from *PiroPito First Playthrough of Minecraft*, which I'm hearing is a Doraemon reference?
 
 LGPL 3.0 or later
