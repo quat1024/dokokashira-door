@@ -5,7 +5,6 @@ import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
 import agency.highlysuspect.dokokashiradoor.tp.DokoClientPlayNetworkHandler;
 import agency.highlysuspect.dokokashiradoor.util.CodecCrap;
 import it.unimi.dsi.fastutil.ints.IntList;
-import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.nbt.NbtCompound;
@@ -16,9 +15,8 @@ import net.minecraft.util.registry.Registry;
 import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
 
-public class DokoClientNet implements ClientModInitializer {
-	@Override
-	public void onInitializeClient() {
+public class DokoClientNet {
+	public static void onInitializeClient() {
 		ClientPlayNetworking.registerGlobalReceiver(DokoMessages.FULL_GATEWAY_UPDATE, (client, handler, buf, responseSender) -> {
 			Identifier worldKeyId = buf.readIdentifier();
 			NbtCompound nbt = buf.readNbt();

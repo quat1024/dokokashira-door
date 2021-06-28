@@ -124,15 +124,24 @@ public class GatewayPersistentState extends PersistentState {
 	@Override
 	public NbtCompound writeNbt(NbtCompound nbt) {
 		nbt.put("Gateways", CodecCrap.writeNbt(CODEC, this));
+		nbt.putInt("DokoDataVersion", 1);
 		return nbt;
 	}
 	
 	public static GatewayPersistentState fromNbt(NbtCompound nbt) {
+		int dataVersion = nbt.contains("DokoDataVersion") ? nbt.getInt("DokoDataVersion") : 0;
+		//TODO: Switch on dataVersion when there are changes to the format.
+		// Nooooot worth it to make a whole DFU-based updater thingie.
+		// Just keep the old Codecs lying around.
 		return CodecCrap.readNbtAllowPartial(CODEC, nbt.get("Gateways"));
 	}
 	
 	public GatewayMap getAllGateways() {
 		return gateways;
+	}
+	
+	ObjectOpenHashSet<BlockPos> getAllKnownDoorsInternal() { //for codecstuff I guess
+		return knownDoors;
 	}
 	
 	public int getChecksum() {

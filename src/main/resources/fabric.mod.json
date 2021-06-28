@@ -21,7 +21,7 @@
       "agency.highlysuspect.dokokashiradoor.Init"
     ],
 		"client": [
-			"agency.highlysuspect.dokokashiradoor.net.DokoClientNet"
+			"agency.highlysuspect.dokokashiradoor.client.ClientInit"
 		]
   },
   "mixins": [
