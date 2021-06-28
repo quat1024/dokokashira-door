@@ -104,7 +104,7 @@ public class ClientDoorTp {
 			
 			Vec3d worldSpace = new Vec3d(vec.getX(), vec.getY(), vec.getZ())
 				.normalize()
-				.multiply(3)
+				.multiply(5)
 				.add(cameraPos);
 			
 			BlockHitResult hit = world.raycast(new RaycastContext(
