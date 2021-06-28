@@ -64,6 +64,8 @@ public class DokoServerPlayNetworkHandler {
 		
 		//spread players out more-or-less randomly within the 20-tick window 
 		if((world.getTime() + spnh.player.getId()) % 20 == 0) {
+			world.getProfiler().push("DokoServerPlayNetworkHandler for " + spnh.player.getEntityName());
+			
 			RegistryKey<World> wkey = world.getRegistryKey();
 			
 			GatewayPersistentState gps = GatewayPersistentState.getFor(world);
@@ -74,6 +76,8 @@ public class DokoServerPlayNetworkHandler {
 			}
 			
 			fillRandomSeeds(world);
+			
+			world.getProfiler().pop();
 		}
 	}
 	

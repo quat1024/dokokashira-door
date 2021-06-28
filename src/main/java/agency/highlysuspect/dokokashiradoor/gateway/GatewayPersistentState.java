@@ -44,13 +44,20 @@ public class GatewayPersistentState extends PersistentState {
 	}
 	
 	public void tick(ServerWorld world) {
-		ChunkManager cm = world.getChunkManager();
-		
-		upkeepDoors(world, cm);
-		upkeepGateways(world, cm);
+		if(world.getTime() % 5 == 0) {
+			world.getProfiler().push("dokodoor tick");
+			
+			ChunkManager cm = world.getChunkManager();
+			
+			upkeepDoors(world, cm);
+			upkeepGateways(world, cm);
+			
+			world.getProfiler().pop();
+		}
 	}
 	
 	private void upkeepDoors(ServerWorld world, ChunkManager cm) {
+		world.getProfiler().swap("upkeepDoors");
 		knownDoors.removeIf(pos -> {
 			if(!Util.isPositionAndNeighborsLoaded(cm, pos)) return false;
 			
@@ -70,6 +77,7 @@ public class GatewayPersistentState extends PersistentState {
 	}
 	
 	private void upkeepGateways(ServerWorld world, ChunkManager cm) {
+		world.getProfiler().swap("upkeepGateways");
 		//This sucks a lot, sorry.
 		//I might modify the map while iterating over it, so I copy all the keys.
 		//I don't think fastutil maps throw CMEs in the name of performance, and I don't wanna find out what happens.
@@ -113,9 +121,14 @@ public class GatewayPersistentState extends PersistentState {
 		knownDoors.add(doorTopPos);
 		
 		if(Util.isPositionAndNeighborsLoaded(world.getChunkManager(), doorTopPos)) {
-			Gateway g = Gateway.readFromWorld(world, doorTopPos);
-			if(g != null && !g.equals(gateways.getGatewayAt(doorTopPos))) {
-				putGateway(g);
+			Gateway fromWorld = Gateway.readFromWorld(world, doorTopPos);
+			if(fromWorld == null) {
+				gateways.remove(doorTopPos);
+			}
+			
+			Gateway known = gateways.getGatewayAt(doorTopPos);
+			if(known == null || !known.equals(fromWorld)) {
+				putGateway(fromWorld);
 			}
 		}
 	}

@@ -81,6 +81,8 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 	}
 	
 	public static @Nullable Gateway readFromWorld(World world, BlockPos doorTopPosMut) {
+		world.getProfiler().visit("Gateway#readFromWorld");
+		
 		BlockPos doorTopPos = doorTopPosMut.toImmutable();
 		
 		BlockState doorTopState = world.getBlockState(doorTopPos);
