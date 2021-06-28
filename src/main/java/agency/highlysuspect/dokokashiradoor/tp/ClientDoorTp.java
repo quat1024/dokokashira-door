@@ -1,5 +1,6 @@
 package agency.highlysuspect.dokokashiradoor.tp;
 
+import agency.highlysuspect.dokokashiradoor.client.MatrixCache;
 import agency.highlysuspect.dokokashiradoor.client.OffsetEntityTrackingSoundInstance;
 import agency.highlysuspect.dokokashiradoor.gateway.Gateway;
 import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
@@ -8,7 +9,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.render.Camera;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -61,6 +61,8 @@ public class ClientDoorTp {
 	}
 	
 	private static boolean withinRangeAndLooking(World world, BlockPos pos, BlockState doorTop, PlayerEntity player) {
+		if(MatrixCache.PROJECTION_MATRIX == null || MatrixCache.VIEW_MATRIX == null) return false;
+		
 		//The door block and the 8 blocks surrounding it
 		Direction backwards = doorTop.get(DoorBlock.FACING);
 		Direction right = backwards.rotateYClockwise();
@@ -77,37 +79,36 @@ public class ClientDoorTp {
 		acceptableHitPositions.add(pos.offset(left).down());
 		acceptableHitPositions.add(pos.offset(left).up());
 		
+		//Location of the camera in world space. Accounts for things like f5 mode and whatnot
+		Vec3d cameraPos = MinecraftClient.getInstance().gameRenderer.getCamera().getPos();
+		
+		//The magic matrix.
+		//If you multiply it by a vec4 where X and Y are a position in normalized device coordinates, Z is whatever, and W is 1,
+		//you will get the vector from the player's camera, to that point in world space.
+		//Normalize that (to clamp the length) then add the camera position back, and it's suitable for raytracing through. Neat.
+		
 		//Based on reverse-engineering captureFrustum a little bit and tracing where the matrices come from
-		Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
-		
-		//I don't even know if getBasicProjectionMatrix is the right yawn name
-		double fov = MinecraftClient.getInstance().options.fov;
-		Matrix4f projection = MinecraftClient.getInstance().gameRenderer.getBasicProjectionMatrix((float) fov);
-		
-		//I wish I knew what to call these matrices lmao. The code just calls this "matrix4f" or something
-		Matrix4f bababooey = new Matrix4f();
-		bababooey.loadIdentity();
-		bababooey.multiply(Vec3f.POSITIVE_X.getDegreesQuaternion(camera.getPitch()));
-		bababooey.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(camera.getYaw() + 180f));
-		projection.multiply(bababooey);
-		projection.invert();
+		//If I had real computer graphics experience this probably would have came a little easier :)
+		Matrix4f screenToWorldDeltaMat = MatrixCache.PROJECTION_MATRIX.copy();
+		screenToWorldDeltaMat.multiply(MatrixCache.VIEW_MATRIX);
+		screenToWorldDeltaMat.invert();
 
 		for(int i = 0; i < 4; i++) {
 			float dx = i < 2 ?      -1 : 1;
 			float dy = i % 2 == 0 ? -1 : 1;
 
-			Vector4f vec = new Vector4f(dx, dy, 1f, 1.0f);
+			Vector4f vec = new Vector4f(dx, dy, 1f, 1f);
 			
-			vec.transform(projection); //idk why "transform", it's a matrix-vector product
+			vec.transform(screenToWorldDeltaMat); //idk why "transform", it's a matrix-vector product
 			vec.normalizeProjectiveCoordinates();
 			
 			Vec3d worldSpace = new Vec3d(vec.getX(), vec.getY(), vec.getZ())
 				.normalize()
 				.multiply(3)
-				.add(camera.getPos());
+				.add(cameraPos);
 			
 			BlockHitResult hit = world.raycast(new RaycastContext(
-				camera.getPos(),
+				cameraPos,
 				worldSpace,
 				RaycastContext.ShapeType.COLLIDER,
 				RaycastContext.FluidHandling.ANY,
@@ -115,8 +116,6 @@ public class ClientDoorTp {
 			));
 			
 			if(hit.getType() == HitResult.Type.MISS) return false;
-			
-			//world.addImportantParticle(ParticleTypes.END_ROD, true, hit.getPos().x, hit.getPos().y, hit.getPos().z, 0, 0, 0);
 			
 			if(hit.getBlockPos() == null || !acceptableHitPositions.contains(hit.getBlockPos())) {
 				return false;
