@@ -1,5 +1,6 @@
 package agency.highlysuspect.dokokashiradoor.gateway;
 
+import agency.highlysuspect.dokokashiradoor.Init;
 import agency.highlysuspect.dokokashiradoor.util.DoorUtil;
 import com.google.common.base.Preconditions;
 import com.mojang.serialization.Codec;
@@ -85,6 +86,7 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		BlockState doorTopState = world.getBlockState(doorTopPos);
 		Block maybeDoorBlock = doorTopState.getBlock();
 		if(!(maybeDoorBlock instanceof DoorBlock doorBlock)) return null;
+		if(!Init.OPAQUE_DOORS.contains(doorBlock)) return null;
 		
 		//"facing" -> the direction the player faces, when they place a door
 		//The *opposite* of facing, is the block edge that the door rests on.
