@@ -30,6 +30,8 @@ dependencies {
 	// Actually no, just gimme the modules I need
 	modImplementation fabricApi.module("fabric-networking-api-v1", project.fabric_version)
 	modImplementation fabricApi.module("fabric-lifecycle-events-v1", project.fabric_version)
+	// and lifecycle-events transitive dep
+	modImplementation fabricApi.module("fabric-api-base", project.fabric_version)
 }
 
 processResources {
