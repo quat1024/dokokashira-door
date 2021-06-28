@@ -124,6 +124,7 @@ public class GatewayPersistentState extends PersistentState {
 			Gateway fromWorld = Gateway.readFromWorld(world, doorTopPos);
 			if(fromWorld == null) {
 				gateways.remove(doorTopPos);
+				return;
 			}
 			
 			Gateway known = gateways.getGatewayAt(doorTopPos);
