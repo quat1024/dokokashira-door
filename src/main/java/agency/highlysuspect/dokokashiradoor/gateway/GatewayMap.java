@@ -100,8 +100,11 @@ public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> {
 	}
 	
 	//we have multiple return at home :relieved:
+	//Do not write to these values!!!!!!!! If I could provide non &mut access I would
 	public static record Delta(GatewayMap additions, GatewayMap removals) {}
 	public Delta diffAgainst(GatewayMap other) {
+		if(other.isEmpty()) return new Delta(this, new GatewayMap());
+		if(this.isEmpty()) return new Delta(new GatewayMap(), other);
 		if(this.equals(other)) return new Delta(new GatewayMap(), new GatewayMap());
 		
 		//Gateways that exist in this map, but not the other map, should be *added to* the other map.
