@@ -30,96 +30,128 @@ public class DokoServerPlayNetworkHandler {
 	
 	private final ServerPlayNetworkHandler spnh;
 	
-	//Gateways that we're sure the client knows about.
-	private final Map<RegistryKey<World>, GatewayMap> knownGateways = new HashMap<>();
+	//PROTOCOL:
+	// When the gateway checksums have *changed* since last time:
+	//  - compute and send a delta-update.
+	//  - apply the delta to the player's image; 
+	//  - increment inFlightGatewayDeltas;
+	// When the player acknowledges a gateway checksum:
+	//  - decrement inFlightPackets;
+	//  - if inFlightGatewayDeltas is not zero: do nothing.
+	//  - if inFlightGatewayDeltas is zero and the checksum is correct: do nothing.
+	//  - if inFlightGatewayDeltas is zero and the checksum is incorrect: something went wrong.
+	// When there are less than ten random seeds:
+	//  - compute (10 - n) more random seeds;
+	//  - increment inFlightRandomSeeds;
+	//  - send N random seeds to the client.
+	// When the player acknowledges a random-seed checksum:
+	//  - decrement inFlightRandomSeeds;
+	//  - if inFlightRandomSeeds is not zero: do nothing.
+	//  - blah blah it's the same as above
 	
-	//When the client receives a request to delta-patch its gateway map, it responds with a checksum of its patched gateway map.
-	//This verifies that the delta-patch is applied correctly, and the server/client really do have the same picture of the gateways.
-	//If the checksum is not correct, the server responds with a full copy of the (potentially very large) gateway map.
-	//This is also useful as a quick-and-dirty "is the client's picture of the gateways up-to-date?" check, without needing to perform
-	//an expensive map-difference operation. 
-	private final Object2IntMap<RegistryKey<World>> acknowledgedChecksums = new Object2IntOpenHashMap<>();
+	public boolean panicMode = false;
 	
-	//The seeds used to randomly choose a door to teleport to are known ahead-of-time and synced to the client.
-	//This helps the client correctly predict which door is the destination.
+	private final Object2IntMap<RegistryKey<World>> lastGatewayChecksums = new Object2IntOpenHashMap<>();
+	private int inFlightGatewayDeltas = 0;
+	private final Map<RegistryKey<World>, GatewayMap> gatewayImages = new HashMap<>();
+	
 	private final IntList randomSeeds = new IntArrayList();
 	private static final int RANDOM_SEED_BUFFER_SIZE = 10;
-	
-	//How many gateway-ack packets I expect to receive from the player.
-	//Consider the following situation:
-	// Send delta-update A; checksum = AAA
-	// Send delta-update B; checksum = BBB
-	// Recv ack A; client sent AAA, expected checksum BBB, mismatch (*)
-	// Recv ack B; client sent BBB, expected checksum BBB, correct
-	//This number is incremented when sending a delta-update, decremented when receiving one,
-	//and errors like (*) are ignored if the number is not 0, i.e. there's some in-flight checksum packets.
-	//They might be totally benign intermediate values.
-	private int pendingGatewayChecksums = 0;
-	
-	//How many randomseed-ack packets I expect to receive from the player.
-	private int pendingRandomSeedChecksums = 0;
+	private int inFlightRandomSeeds = 0;
 	
 	public void tick() {
 		ServerWorld world = spnh.player.getServerWorld();
+		world.getProfiler().push("DokoServerPlayNetworkHandler for " + spnh.player.getEntityName());
+		tick0(world);
+		world.getProfiler().pop();
+	}
+	
+	private void tick0(ServerWorld world) {
+		RegistryKey<World> wkey = world.getRegistryKey();
+		GatewayPersistentState gps = GatewayPersistentState.getFor(world);
+		int currentGatewayChecksum = gps.getChecksum();
 		
-		//spread players out more-or-less randomly within the 20-tick window 
-		if((world.getTime() + spnh.player.getId()) % 20 == 0) {
-			world.getProfiler().push("DokoServerPlayNetworkHandler for " + spnh.player.getEntityName());
-			
-			RegistryKey<World> wkey = world.getRegistryKey();
-			
-			GatewayPersistentState gps = GatewayPersistentState.getFor(world);
-			int ackChecksum = acknowledgedChecksums.getInt(wkey);
-			
-			if(gps.getChecksum() != ackChecksum) {
+		//Something is wrong in the delta-update machinery, so do the thing the delta-update machinery is supposed to make me not have to do.
+		if(panicMode) {
+			sendFullGatewayUpdate(world);
+			DokoServerNet.setRandomSeeds(spnh.player, randomSeeds);
+			panicMode = false;
+			return;
+		}
+		
+		//Is the player new to this dimension?
+		if(!lastGatewayChecksums.containsKey(wkey)) { //They are.
+			sendFullGatewayUpdate(world);
+		} else {
+			//If the gateways have changed since last tick, send a delta update.
+			int lastChecksum = lastGatewayChecksums.getInt(wkey);
+			if(currentGatewayChecksum != lastChecksum) { //They have.
 				sendDeltaGatewayUpdate(world);
 			}
-			
-			fillRandomSeeds(world);
-			
-			world.getProfiler().pop();
 		}
-	}
-	
-	public void ackGatewayChecksum(ServerWorld world, int checksum) {
-		GatewayPersistentState gps = GatewayPersistentState.getFor(world);
-		this.acknowledgedChecksums.put(world.getRegistryKey(), checksum);
 		
-		pendingGatewayChecksums--;
-		if(pendingGatewayChecksums < 0) pendingGatewayChecksums = 0;
+		//Set lastGatewayChecksum
+		lastGatewayChecksums.put(wkey, currentGatewayChecksum);
 		
-		if(pendingGatewayChecksums == 0) {
-			if(gps.getChecksum() == checksum) {
-				//The player replied with the correct checksum, so I'm pretty sure they know the correct gateway map.
-				knownGateways.put(world.getRegistryKey(), gps.getAllGateways().copy());
-			} else {
-				Init.LOGGER.warn("{}: Expected gateway checksum {}, but they replied with {}. Sending them a full gateway update.", spnh.player.getEntityName(), gps.getChecksum(), checksum);
-				sendFullGatewayUpdate(world);
+		//Fill the bucket of randomSeeds, if there is any reason to do so
+		if(randomSeeds.size() < RANDOM_SEED_BUFFER_SIZE) {
+			int howMany = RANDOM_SEED_BUFFER_SIZE - randomSeeds.size();
+			IntList moreSeeds = new IntArrayList(howMany);
+			for(int i = 0; i < howMany; i++) {
+				moreSeeds.add(world.random.nextInt());
 			}
+			
+			randomSeeds.addAll(moreSeeds);
+			DokoServerNet.addRandomSeeds(spnh.player, moreSeeds);
+			inFlightRandomSeeds++;
 		}
-	}
-	
-	public void onDimensionChange(ServerWorld destination) {
-		sendDeltaGatewayUpdate(destination);
 	}
 	
 	public void sendFullGatewayUpdate(ServerWorld world) {
 		RegistryKey<World> wkey = world.getRegistryKey();
 		GatewayPersistentState gps = GatewayPersistentState.getFor(world);
 		
+		//Send them a full update.
 		DokoServerNet.sendFullGatewayUpdate(spnh.player, wkey, gps.getAllGateways());
+		
+		//Update the player's image.
+		gatewayImages.put(wkey, gps.getAllGateways().copy());
 	}
 	
 	public void sendDeltaGatewayUpdate(ServerWorld world) {
-		ServerPlayerEntity player = spnh.player;
 		RegistryKey<World> wkey = world.getRegistryKey();
 		GatewayPersistentState gps = GatewayPersistentState.getFor(world);
 		
-		GatewayMap known = knownGateways.computeIfAbsent(wkey, __ -> new GatewayMap());
+		//Compute a delta update.
+		GatewayMap known = gatewayImages.computeIfAbsent(wkey, __ -> new GatewayMap());
 		GatewayMap.Delta diff = gps.getAllGateways().diffAgainst(known);
 		
-		DokoServerNet.sendDeltaGatewayUpdate(player, wkey, diff.additions(), diff.removals());
-		pendingGatewayChecksums++;
+		//Send it.
+		DokoServerNet.sendDeltaGatewayUpdate(spnh.player, wkey, diff.additions(), diff.removals());
+		
+		//Update the player's image.
+		known.applyDelta(diff.additions(), diff.removals());
+		
+		inFlightGatewayDeltas++;
+	}
+	
+	public void ackGatewayChecksum(ServerWorld world, int checksum) {
+		inFlightGatewayDeltas--;
+		if(inFlightGatewayDeltas < 0) inFlightGatewayDeltas = 0; //How'd that happen?
+		
+		//If many gateways change in a short period of time (causing a bunch of delta updates to be sent in quick succession),
+		//the server might observe these intermediate values being acknowledged. That's okay.
+		if(inFlightGatewayDeltas == 0) {
+			//See if the player responded with the correct checksum.
+			int correctChecksum = GatewayPersistentState.getFor(world).getChecksum();
+			if(correctChecksum != checksum) {
+				//Bzzt, wrong.
+				//This could happen if a packet got lost somewhere, a delta got misapplied,
+				//or (regretfully) unfortunate timing (send delta -> gateways change -> receive acknowledgement before sending another delta)
+				Init.LOGGER.warn("{}: Expected gateway checksum {}, but they replied with {}.", spnh.player.getEntityName(), correctChecksum, checksum);
+				panicMode = true;
+			}
+		}
 	}
 	
 	public boolean hasRandomSeed() {
@@ -130,29 +162,16 @@ public class DokoServerPlayNetworkHandler {
 		return randomSeeds.removeInt(0);
 	}
 	
-	public void fillRandomSeeds(ServerWorld world) {
-		if(randomSeeds.size() < RANDOM_SEED_BUFFER_SIZE) {
-			int howMany = RANDOM_SEED_BUFFER_SIZE - randomSeeds.size();
-			IntList moreSeeds = new IntArrayList(howMany);
-			for(int i = 0; i < howMany; i++) {
-				moreSeeds.add(world.random.nextInt());
-			}
-			
-			randomSeeds.addAll(moreSeeds);
-			DokoServerNet.addRandomSeeds(spnh.player, moreSeeds);
-			pendingRandomSeedChecksums++;
-		}
-	}
-	
 	public void ackRandomSeedChecksum(int checksum) {
-		int seedChecksum = Util.checksumIntList(randomSeeds);
+		inFlightRandomSeeds--;
+		if(inFlightRandomSeeds < 0) inFlightRandomSeeds = 0;
 		
-		pendingRandomSeedChecksums--;
-		if(pendingRandomSeedChecksums < 0) pendingRandomSeedChecksums = 0;
-		
-		if(pendingRandomSeedChecksums == 0 && seedChecksum != checksum) {
-			Init.LOGGER.warn("{}: Expected random-seed checksum {}, but they replied with {}. Sending them a full random-seed update.", spnh.player.getEntityName(), seedChecksum, checksum);
-			DokoServerNet.setRandomSeeds(spnh.player, randomSeeds);
+		if(inFlightRandomSeeds == 0) {
+			int correctChecksum = Util.checksumIntList(randomSeeds);
+			if(correctChecksum != checksum) {
+				Init.LOGGER.warn("{}: Expected random-seed checksum {}, but they replied with {}.", spnh.player.getEntityName(), correctChecksum, checksum);
+				panicMode = true;
+			}
 		}
 	}
 }

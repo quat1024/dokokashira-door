@@ -22,10 +22,8 @@ public class ServerDoorTp {
 			//Bad player. Rubberband them
 			player.networkHandler.requestTeleport(oldPos.x, oldPos.y, oldPos.z, oldYaw, oldPitch);
 			
-			//Hit em with a delta update as well
-			DokoServerPlayNetworkHandler ext = DokoServerPlayNetworkHandler.getFor(player);
-			ext.sendDeltaGatewayUpdate(player.getServerWorld());
-			ext.fillRandomSeeds(player.getServerWorld());
+			//Hit em with an update as well
+			DokoServerPlayNetworkHandler.getFor(player).panicMode = true;
 		}
 	}
 	

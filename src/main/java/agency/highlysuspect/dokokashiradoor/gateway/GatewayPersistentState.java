@@ -122,8 +122,8 @@ public class GatewayPersistentState extends PersistentState {
 		
 		if(Util.isPositionAndNeighborsLoaded(world.getChunkManager(), doorTopPos)) {
 			Gateway fromWorld = Gateway.readFromWorld(world, doorTopPos);
-			if(fromWorld == null && gateways.hasGatewayAt(doorTopPos)) {
-				removeGatewayAt(doorTopPos);
+			if(fromWorld == null) {
+				if(gateways.hasGatewayAt(doorTopPos)) removeGatewayAt(doorTopPos);
 				return;
 			}
 			

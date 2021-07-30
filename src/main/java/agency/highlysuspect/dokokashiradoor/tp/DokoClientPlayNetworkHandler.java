@@ -44,8 +44,7 @@ public class DokoClientPlayNetworkHandler {
 	}
 	
 	public void fullGatewayUpdate(RegistryKey<World> key, GatewayMap value) {
-		Init.LOGGER.warn("Performing a full-update of gateways. Normally delta-updates should suffice. This is probably a bug.");
-		
+		Init.LOGGER.warn("Performing a full-update of gateways, checksum {}", value.checksum());
 		gatewayStorage.put(key, value);
 	}
 	
@@ -56,8 +55,7 @@ public class DokoClientPlayNetworkHandler {
 	}
 	
 	public void fullRandomSeeds(IntList newSeeds) {
-		Init.LOGGER.warn("Performing a full-update of random seeds. Normally delta-updates should suffice. This is probably a bug.");
-		
+		Init.LOGGER.warn("Performing a full-update of random seeds. Probably a bug");
 		randomSeeds.clear();
 		randomSeeds.addAll(newSeeds);
 	}
