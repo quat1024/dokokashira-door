@@ -16,6 +16,7 @@ Since clients need to predict their teleportation destination in order to make t
 
 * Enforce that block*states* match, not only blocks. Will need to rotate them.
 * (goofy idea) Make it so you can't teleport if other players in MP can see you
+* I don't think it would hurt to improve the network consumption further by using raw packets + raw block IDs, instead of just "serialize to NBT and shove the tag into a packet".
 
 # Blah
 
