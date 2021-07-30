@@ -123,7 +123,7 @@ public class GatewayPersistentState extends PersistentState {
 		if(Util.isPositionAndNeighborsLoaded(world.getChunkManager(), doorTopPos)) {
 			Gateway fromWorld = Gateway.readFromWorld(world, doorTopPos);
 			if(fromWorld == null) {
-				gateways.remove(doorTopPos);
+				removeGatewayAt(doorTopPos);
 				return;
 			}
 			
