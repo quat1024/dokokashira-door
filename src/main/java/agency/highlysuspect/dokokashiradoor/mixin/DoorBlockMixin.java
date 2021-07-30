@@ -41,6 +41,8 @@ public class DoorBlockMixin extends Block {
 				cir.setReturnValue(ActionResult.success(true));
 			}
 		}
+		
+		//if(!world.isClient()) cir.setReturnValue(ActionResult.success(false));
 	}
 	
 	@Inject(

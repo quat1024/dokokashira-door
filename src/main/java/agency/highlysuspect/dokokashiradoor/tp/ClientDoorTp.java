@@ -5,6 +5,7 @@ import agency.highlysuspect.dokokashiradoor.client.OffsetEntityTrackingSoundInst
 import agency.highlysuspect.dokokashiradoor.gateway.Gateway;
 import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
 import agency.highlysuspect.dokokashiradoor.net.DokoClientNet;
+import agency.highlysuspect.dokokashiradoor.util.ClientPlayerInteractionManagerExt;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.client.MinecraftClient;
@@ -56,6 +57,11 @@ public class ClientDoorTp {
 		
 		//4. Play the special clientside door-opening sound. This one follows the player around as they teleport.
 		MinecraftClient.getInstance().getSoundManager().play(OffsetEntityTrackingSoundInstance.doorOpen(player, destination.doorTopPos(), null, world.random));
+		
+		//5. Suppress sending a player-use-block packet.
+		//This prevents the door from opening normally on the server.
+		assert MinecraftClient.getInstance().interactionManager != null;
+		((ClientPlayerInteractionManagerExt) MinecraftClient.getInstance().interactionManager).dokodoor$skipInteractionPacket();
 		
 		return true;
 	}

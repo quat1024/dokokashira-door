@@ -28,11 +28,15 @@ public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> {
 	}
 	
 	public void removeGateway(Gateway g) {
-		remove(g.doorTopPos());
+		if(g != null)	remove(g.doorTopPos());
 	}
 	
 	public @Nullable Gateway getGatewayAt(BlockPos pos) {
 		return get(pos);
+	}
+	
+	public boolean hasGatewayAt(BlockPos pos) {
+		return containsKey(pos);
 	}
 	
 	public boolean contains(Gateway other) {

@@ -182,8 +182,7 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 				arrivalDoorState = world.getBlockState(doorTopPos);
 			}
 			
-			//Open the src and destination doors
-			DoorUtil.sneakyOpenDoor(world, departureGateway.doorTopPos, departureDoorState);
+			//Open the destination door
 			DoorUtil.silentlyOpenDoor(player, world, this.doorTopPos, arrivalDoorState);
 			
 			//Client code handles this differently by playing a special SoundEvent that follows the player around.
