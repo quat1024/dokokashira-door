@@ -2,78 +2,74 @@ package agency.highlysuspect.dokokashiradoor.net;
 
 import agency.highlysuspect.dokokashiradoor.Init;
 import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
+import agency.highlysuspect.dokokashiradoor.net.payload.AcknowledgeDeltaGatewayC2SPayload;
+import agency.highlysuspect.dokokashiradoor.net.payload.AcknowledgeRandomSeedsPayloadC2S;
+import agency.highlysuspect.dokokashiradoor.net.payload.AddRandomSeedsPayloadS2C;
+import agency.highlysuspect.dokokashiradoor.net.payload.DeltaGatewayUpdateS2CPayload;
+import agency.highlysuspect.dokokashiradoor.net.payload.DoorTeleportRequestC2SPayload;
+import agency.highlysuspect.dokokashiradoor.net.payload.FullGatewayUpdateS2CPayload;
+import agency.highlysuspect.dokokashiradoor.net.payload.SetRandomSeedsPayloadS2C;
 import agency.highlysuspect.dokokashiradoor.tp.DokoClientPlayNetworkHandler;
-import agency.highlysuspect.dokokashiradoor.util.CodecCrap;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
 
 public class DokoClientNet {
 	public static void onInitializeClient() {
-		ClientPlayNetworking.registerGlobalReceiver(DokoMessages.FULL_GATEWAY_UPDATE, (client, handler, buf, responseSender) -> {
-			Identifier worldKeyId = buf.readIdentifier();
-			NbtCompound nbt = buf.readNbt();
-				
+		ClientPlayNetworking.registerGlobalReceiver(FullGatewayUpdateS2CPayload.ID, (payload, context) -> {
+			MinecraftClient client = context.client();
+
+			Identifier worldKeyId = payload.worldKeyId();
+			GatewayMap map = payload.gateways();
+
 			client.execute(() -> {
 				if(client.player == null) { Init.LOGGER.error("Recv gateway update but no player. Ignoring"); return; }
 				
-				RegistryKey<World> worldKey = RegistryKey.of(Registry.WORLD_KEY, worldKeyId);
-				
-				if(nbt == null) { Init.LOGGER.error("Recv null gatewaymap nbt"); return; }
-				GatewayMap map = CodecCrap.readNbt(GatewayMap.CODEC, nbt.get("full_update"));
-				if(map == null) { Init.LOGGER.error("Recv invalid gatewaymap nbt"); return; }
+				RegistryKey<World> worldKey = RegistryKey.of(RegistryKeys.WORLD, worldKeyId);
 				
 				DokoClientPlayNetworkHandler.get(client.player).fullGatewayUpdate(worldKey, map);
 			});
 		});
 		
-		ClientPlayNetworking.registerGlobalReceiver(DokoMessages.DELTA_GATEWAY_UPDATE, (client, handler, buf, responseSender) -> {
-			Identifier worldKeyId = buf.readIdentifier();
-			NbtCompound nbt = buf.readNbt();
+		ClientPlayNetworking.registerGlobalReceiver(DeltaGatewayUpdateS2CPayload.ID, (payload, context) -> {
+			MinecraftClient client = context.client();
+
+			Identifier worldKeyId = payload.worldKeyId();
+			GatewayMap additions = payload.additions();
+			GatewayMap removals = payload.removals();
 			
 			client.execute(() -> {
 				if(client.player == null) { Init.LOGGER.error("Recv gateway update but no player. Ignoring"); return; }
-				if(nbt == null) { Init.LOGGER.error("Received null deltaupdate gateway map nbt"); return; }
 				
-				RegistryKey<World> worldKey = RegistryKey.of(Registry.WORLD_KEY, worldKeyId);
-				
-				GatewayMap additions = CodecCrap.readNbt(GatewayMap.CODEC, nbt.get("additions"));
-				if(additions == null) { Init.LOGGER.error("received invalid gatewaymap additions"); return; }
-				
-				GatewayMap removals = CodecCrap.readNbt(GatewayMap.CODEC, nbt.get("removals"));
-				if(removals == null) { Init.LOGGER.error("received invalid gatewaymap removals"); return; }
+				RegistryKey<World> worldKey = RegistryKey.of(RegistryKeys.WORLD, worldKeyId);
 				
 				DokoClientPlayNetworkHandler cpgd = DokoClientPlayNetworkHandler.get(client.player);
 				
-				PacketByteBuf yes = PacketByteBufs.create();
-				yes.writeIdentifier(worldKey.getValue());
-				yes.writeInt(cpgd.deltaGatewayUpdate(worldKey, additions, removals));
-				responseSender.sendPacket(DokoMessages.DELTA_GATEWAY_ACK, yes);
+				context.responseSender().sendPacket(new AcknowledgeDeltaGatewayC2SPayload(worldKey.getValue(), cpgd.deltaGatewayUpdate(worldKey, additions, removals)));
 			});
 		});
 		
-		ClientPlayNetworking.registerGlobalReceiver(DokoMessages.ADD_RANDOM_SEEDS, (client, handler, buf, responseSender) -> {
-			IntList newSeeds = buf.readIntList();
+		ClientPlayNetworking.registerGlobalReceiver(AddRandomSeedsPayloadS2C.ID, (payload, context) -> {
+			MinecraftClient client = context.client();
+
+			IntList newSeeds = payload.newSeeds();
 			
 			client.execute(() -> {
 				if(client.player == null) { Init.LOGGER.error("Recv random seeds but no player. Ignoring"); return; }
 				DokoClientPlayNetworkHandler cpgd = DokoClientPlayNetworkHandler.get(client.player);
 				
-				PacketByteBuf yes = PacketByteBufs.create();
-				yes.writeInt(cpgd.deltaRandomSeeds(newSeeds));
-				responseSender.sendPacket(DokoMessages.RANDOM_SEEDS_ACK, yes);
+				context.responseSender().sendPacket(new AcknowledgeRandomSeedsPayloadC2S(cpgd.deltaRandomSeeds(newSeeds)));
 			});
 		});
 		
-		ClientPlayNetworking.registerGlobalReceiver(DokoMessages.SET_RANDOM_SEEDS, (client, handler, buf, responseSender) -> {
-			IntList newSeeds = buf.readIntList();
+		ClientPlayNetworking.registerGlobalReceiver(SetRandomSeedsPayloadS2C.ID, (payload, context) -> {
+			MinecraftClient client = context.client();
+			IntList newSeeds = payload.newSeeds();
 			client.execute(() -> {
 				if(client.player == null) { Init.LOGGER.error("Recv random seeds but no player. Ignoring"); return; }
 				DokoClientPlayNetworkHandler.get(client.player).fullRandomSeeds(newSeeds);
@@ -82,9 +78,6 @@ public class DokoClientNet {
 	}
 	
 	public static void sendDoorTeleport(BlockPos leftFrom, BlockPos destination) {
-		PacketByteBuf buf = PacketByteBufs.create();
-		buf.writeBlockPos(leftFrom);
-		buf.writeBlockPos(destination);
-		ClientPlayNetworking.send(DokoMessages.DOOR_TELEPORT_REQUEST, buf);
+		ClientPlayNetworking.send(new DoorTeleportRequestC2SPayload(leftFrom, destination));
 	}
 }

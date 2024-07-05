@@ -9,12 +9,11 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-
-import java.util.Random;
+import net.minecraft.util.math.random.Random;
 
 public class OffsetEntityTrackingSoundInstance extends MovingSoundInstance {
-	public OffsetEntityTrackingSoundInstance(SoundEvent soundEvent, SoundCategory soundCategory, float volume, float pitch, Entity entity, double dx, double dy, double dz) {
-		super(soundEvent, soundCategory);
+	public OffsetEntityTrackingSoundInstance(SoundEvent soundEvent, SoundCategory soundCategory, Random random, float volume, float pitch, Entity entity, double dx, double dy, double dz) {
+		super(soundEvent, soundCategory, random);
 		this.volume = volume;
 		this.pitch = pitch;
 		
@@ -32,6 +31,7 @@ public class OffsetEntityTrackingSoundInstance extends MovingSoundInstance {
 		return new OffsetEntityTrackingSoundInstance(
 			SoundEvents.BLOCK_WOODEN_DOOR_OPEN,
 			SoundCategory.BLOCKS,
+			random,
 			1f, //volume
 			random.nextFloat() * 0.1f + 0.9f, //pitch
 			opener,

@@ -14,11 +14,13 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.*;
+import net.minecraft.util.math.random.Random;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
+import org.joml.Matrix4f;
+import org.joml.Vector4f;
 
 import java.util.HashSet;
-import java.util.Random;
 import java.util.Set;
 
 public class ClientDoorTp {
@@ -34,7 +36,7 @@ public class ClientDoorTp {
 		if(thisGateway == null) return false;
 		
 		if(!cpgd.hasRandomSeeds()) return false;
-		Random random = new Random(cpgd.peekRandomSeed());
+		Random random = Random.create(cpgd.peekRandomSeed());
 		
 		Gateway destination = gateways.findDifferentGateway(thisGateway, random, 1, gateway -> true);
 		if(destination == null) return false;
@@ -95,8 +97,8 @@ public class ClientDoorTp {
 		
 		//Based on reverse-engineering captureFrustum a little bit and tracing where the matrices come from
 		//If I had real computer graphics experience this probably would have came a little easier :)
-		Matrix4f screenToWorldDeltaMat = MatrixCache.PROJECTION_MATRIX.copy();
-		screenToWorldDeltaMat.multiply(MatrixCache.VIEW_MATRIX);
+		Matrix4f screenToWorldDeltaMat = new Matrix4f(MatrixCache.PROJECTION_MATRIX);
+		screenToWorldDeltaMat.mul(MatrixCache.VIEW_MATRIX);
 		screenToWorldDeltaMat.invert();
 
 		for(int i = 0; i < 4; i++) {
@@ -105,10 +107,10 @@ public class ClientDoorTp {
 
 			Vector4f vec = new Vector4f(dx, dy, 1f, 1f);
 			
-			vec.transform(screenToWorldDeltaMat); //idk why "transform", it's a matrix-vector product
-			vec.normalizeProjectiveCoordinates();
+			vec.mul(screenToWorldDeltaMat);
+			vec.div(vec.w());
 			
-			Vec3d worldSpace = new Vec3d(vec.getX(), vec.getY(), vec.getZ())
+			Vec3d worldSpace = new Vec3d(vec.x(), vec.y(), vec.z())
 				.normalize()
 				.multiply(5)
 				.add(cameraPos);

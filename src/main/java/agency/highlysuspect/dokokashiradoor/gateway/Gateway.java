@@ -2,6 +2,7 @@ package agency.highlysuspect.dokokashiradoor.gateway;
 
 import agency.highlysuspect.dokokashiradoor.Init;
 import agency.highlysuspect.dokokashiradoor.util.DoorUtil;
+import io.netty.buffer.ByteBuf;
 import com.google.common.base.Preconditions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
@@ -11,6 +12,9 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.enums.DoorHinge;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.codec.PacketCodecs;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -19,7 +23,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -43,21 +46,21 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 			
 			return new Proto(
 				gateway.doorTopPos,
-				Registry.BLOCK.getId(gateway.doorBlock),
-				gateway.frame.stream().map(Registry.BLOCK::getId).collect(Collectors.toList()),
+				Registries.BLOCK.getId(gateway.doorBlock),
+				gateway.frame.stream().map(Registries.BLOCK::getId).collect(Collectors.toList()),
 				gateway.facing
 			);
 		}
 		
 		public DataResult<Gateway> validateAndDrop() {
-			if(!Registry.BLOCK.containsId(doorBlockId)) return DataResult.error("No such block " + doorBlockId);
-			if(!(Registry.BLOCK.get(doorBlockId) instanceof DoorBlock doorBlock)) return DataResult.error("Block " + doorBlockId + " is not instanceof DoorBlock");
+			if(!Registries.BLOCK.containsId(doorBlockId)) return DataResult.error(() -> "No such block " + doorBlockId);
+			if(!(Registries.BLOCK.get(doorBlockId) instanceof DoorBlock doorBlock)) return DataResult.error(() -> "Block " + doorBlockId + " is not instanceof DoorBlock");
 			
-			if(frameIds.size() != 7) return DataResult.error("Expected 7 frame blocks, found " + frameIds.size());
+			if(frameIds.size() != 7) return DataResult.error(() -> "Expected 7 frame blocks, found " + frameIds.size());
 			List<Block> frameBlocks = new ArrayList<>();
 			for(Identifier id : frameIds) {
-				if(!Registry.BLOCK.containsId(id)) return DataResult.error("No such block " + id + " in frame");
-				frameBlocks.add(Registry.BLOCK.get(id));
+				if(!Registries.BLOCK.containsId(id)) return DataResult.error(() -> "No such block " + id + " in frame");
+				frameBlocks.add(Registries.BLOCK.get(id));
 			}
 			
 			return DataResult.success(new Gateway(doorTopPos, doorBlock, frameBlocks, facing));
@@ -65,6 +68,8 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 	}
 	
 	public static final Codec<Gateway> CODEC = Proto.CODEC.comapFlatMap(Proto::validateAndDrop, Proto::lift);
+	
+	public static final PacketCodec<ByteBuf, Gateway> PACKET_CODEC = PacketCodecs.codec(CODEC);
 	
 	public boolean equalButDifferentPositions(Gateway other) {
 		return (!doorTopPos.equals(other.doorTopPos)) &&
@@ -88,7 +93,7 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		BlockState doorTopState = world.getBlockState(doorTopPos);
 		Block maybeDoorBlock = doorTopState.getBlock();
 		if(!(maybeDoorBlock instanceof DoorBlock doorBlock)) return null;
-		if(!Init.OPAQUE_DOORS.contains(doorBlock)) return null;
+		if(!doorTopState.isIn(Init.OPAQUE_DOORS)) return null;
 		
 		//"facing" -> the direction the player faces, when they place a door
 		//The *opposite* of facing, is the block edge that the door rests on.
@@ -208,11 +213,11 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		int checksum = doorTopPos.hashCode();
 		checksum *= 31;
 		
-		checksum ^= Registry.BLOCK.getRawId(doorBlock);
+		checksum ^= Registries.BLOCK.getRawId(doorBlock);
 		checksum *= 31;
 		
 		for(Block f : frame) {
-			checksum ^= Registry.BLOCK.getRawId(f);
+			checksum ^= Registries.BLOCK.getRawId(f);
 			checksum *= 31;
 		}
 		

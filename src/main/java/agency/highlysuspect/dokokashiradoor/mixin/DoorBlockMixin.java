@@ -9,7 +9,6 @@ import net.minecraft.block.enums.DoubleBlockHalf;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -34,7 +33,7 @@ public class DoorBlockMixin extends Block {
 		),
 		cancellable = true
 	)
-	private void whenUsed(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit, CallbackInfoReturnable<ActionResult> cir) {
+	private void whenUsed(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit, CallbackInfoReturnable<ActionResult> cir) {
 		if(world.isClient() && player != null && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER && !state.get(DoorBlock.OPEN)) {
 			boolean worked = ClientDoorTp.playerUseDoorClient(world, pos, state, player);
 			if(worked) {

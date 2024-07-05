@@ -6,9 +6,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.random.Random;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Random;
 
 public class ServerDoorTp {
 	public static void confirmDoorTeleport(BlockPos leftFromPos, BlockPos destPos, ServerPlayerEntity player) {
@@ -42,8 +41,7 @@ public class ServerDoorTp {
 		//Pop the next random seed
 		DokoServerPlayNetworkHandler ext = DokoServerPlayNetworkHandler.getFor(player);
 		if(!ext.hasRandomSeed()) return false;
-		Random random = new Random();
-		random.setSeed(ext.popRandomSeed());
+		Random random = Random.create(ext.popRandomSeed());
 		
 		//Find a different gateway using that random seed
 		@Nullable Gateway destination = gps.getAllGateways().findDifferentGateway(thisGateway, random, 10, candidate -> candidate.stillExistsInWorld(world));

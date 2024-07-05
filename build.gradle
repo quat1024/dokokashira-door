@@ -1,10 +1,10 @@
 plugins {
-	id 'fabric-loom' version '0.8-SNAPSHOT'
+	id 'fabric-loom' version '1.7.+'
 	id 'maven-publish'
 }
 
-sourceCompatibility = JavaVersion.VERSION_16
-targetCompatibility = JavaVersion.VERSION_16
+sourceCompatibility = JavaVersion.VERSION_21
+targetCompatibility = JavaVersion.VERSION_21
 
 archivesBaseName = "${project.archives_base_name}-${project.minecraft_version}"
 version = project.mod_version
@@ -12,8 +12,13 @@ group = project.maven_group
 
 repositories {
 	maven {
-  	name = "saiko"
-  	url = "https://maven.dblsaiko.net"
+  	name = "vram guild"
+  	url = "https://maven.vram.io"
+  }
+  
+  maven {
+  	name = "terraformers"
+  	url = "https://maven.terraformersmc.com/"
   }
   
   maven {
@@ -38,16 +43,16 @@ dependencies {
 	
 	// Actually no, just gimme the modules I need
 	modImplementation fabricApi.module("fabric-networking-api-v1", project.fabric_version)
+	modImplementation fabricApi.module("fabric-object-builder-api-v1", project.fabric_version)
 	modImplementation fabricApi.module("fabric-lifecycle-events-v1", project.fabric_version)	
 	modImplementation fabricApi.module("fabric-resource-loader-v0", project.fabric_version)
-	modImplementation fabricApi.module("fabric-tag-extensions-v0", project.fabric_version)
 	
 	// and lifecycle-events transitive dep
   modImplementation fabricApi.module("fabric-api-base", project.fabric_version)
   
   // Literally so i can mix in to 1 class
-  modCompileOnly "grondag:frex-mc117:5.4.234"
-  modCompileOnly "grondag:canvas-mc117-1.17:1.0.1851"
+  //modCompileOnly "io.vram:frex-fabric:20.5.369"
+  //modCompileOnly "io.vram:canvas-fabric:20.5.2698"
 }
 
 processResources {
@@ -65,8 +70,8 @@ tasks.withType(JavaCompile).configureEach {
 	// If Javadoc is generated, this must be specified in that task too.
 	it.options.encoding = "UTF-8"
 
-	// Minecraft 1.17 (21w19a) upwards uses Java 16.
-	it.options.release = 16
+	// Minecraft 1.20.5 (24w14a) upwards uses Java 21.
+	it.options.release = 21
 }
 
 java {

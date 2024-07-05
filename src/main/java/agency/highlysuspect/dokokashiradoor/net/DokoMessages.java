@@ -1,16 +1,24 @@
 package agency.highlysuspect.dokokashiradoor.net;
 
-import agency.highlysuspect.dokokashiradoor.Init;
-import net.minecraft.util.Identifier;
+import agency.highlysuspect.dokokashiradoor.net.payload.FullGatewayUpdateS2CPayload;
+import agency.highlysuspect.dokokashiradoor.net.payload.AcknowledgeDeltaGatewayC2SPayload;
+import agency.highlysuspect.dokokashiradoor.net.payload.AcknowledgeRandomSeedsPayloadC2S;
+import agency.highlysuspect.dokokashiradoor.net.payload.AddRandomSeedsPayloadS2C;
+import agency.highlysuspect.dokokashiradoor.net.payload.DeltaGatewayUpdateS2CPayload;
+import agency.highlysuspect.dokokashiradoor.net.payload.DoorTeleportRequestC2SPayload;
+import agency.highlysuspect.dokokashiradoor.net.payload.SetRandomSeedsPayloadS2C;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 
 public class DokoMessages {
-	public static final Identifier FULL_GATEWAY_UPDATE = Init.id("full_gateway_update");
-	public static final Identifier DELTA_GATEWAY_UPDATE = Init.id("delta_gateway_update");
-	public static final Identifier DELTA_GATEWAY_ACK = Init.id("delta_gateway_ack");
-	
-	public static final Identifier ADD_RANDOM_SEEDS = Init.id("add_random_seeds");
-	public static final Identifier SET_RANDOM_SEEDS = Init.id("set_random_seeds");
-	public static final Identifier RANDOM_SEEDS_ACK = Init.id("random_seeds_ack");
-	
-	public static final Identifier DOOR_TELEPORT_REQUEST = Init.id("door_teleport_request");
+	public static void onInitialize() {
+		PayloadTypeRegistry.playS2C().register(FullGatewayUpdateS2CPayload.ID, FullGatewayUpdateS2CPayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(DeltaGatewayUpdateS2CPayload.ID, DeltaGatewayUpdateS2CPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(AcknowledgeDeltaGatewayC2SPayload.ID, AcknowledgeDeltaGatewayC2SPayload.CODEC);
+
+		PayloadTypeRegistry.playS2C().register(AddRandomSeedsPayloadS2C.ID, AddRandomSeedsPayloadS2C.CODEC);
+		PayloadTypeRegistry.playS2C().register(SetRandomSeedsPayloadS2C.ID, SetRandomSeedsPayloadS2C.CODEC);
+		PayloadTypeRegistry.playC2S().register(AcknowledgeRandomSeedsPayloadC2S.ID, AcknowledgeRandomSeedsPayloadC2S.CODEC);
+
+		PayloadTypeRegistry.playC2S().register(DoorTeleportRequestC2SPayload.ID, DoorTeleportRequestC2SPayload.CODEC);
+	}
 }

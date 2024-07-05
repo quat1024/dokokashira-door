@@ -10,10 +10,10 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
 
 import java.util.HashMap;
@@ -61,7 +61,7 @@ public class DokoServerPlayNetworkHandler {
 	
 	public void tick() {
 		ServerWorld world = spnh.player.getServerWorld();
-		world.getProfiler().push("DokoServerPlayNetworkHandler for " + spnh.player.getEntityName());
+		world.getProfiler().push("DokoServerPlayNetworkHandler for " + spnh.player.getNameForScoreboard());
 		tick0(world);
 		world.getProfiler().pop();
 	}
@@ -148,7 +148,7 @@ public class DokoServerPlayNetworkHandler {
 				//Bzzt, wrong.
 				//This could happen if a packet got lost somewhere, a delta got misapplied,
 				//or (regretfully) unfortunate timing (send delta -> gateways change -> receive acknowledgement before sending another delta)
-				Init.LOGGER.warn("{}: Expected gateway checksum {}, but they replied with {}.", spnh.player.getEntityName(), correctChecksum, checksum);
+				Init.LOGGER.warn("{}: Expected gateway checksum {}, but they replied with {}.", spnh.player.getNameForScoreboard(), correctChecksum, checksum);
 				panicMode = true;
 			}
 		}
@@ -169,7 +169,7 @@ public class DokoServerPlayNetworkHandler {
 		if(inFlightRandomSeeds == 0) {
 			int correctChecksum = Util.checksumIntList(randomSeeds);
 			if(correctChecksum != checksum) {
-				Init.LOGGER.warn("{}: Expected random-seed checksum {}, but they replied with {}.", spnh.player.getEntityName(), correctChecksum, checksum);
+				Init.LOGGER.warn("{}: Expected random-seed checksum {}, but they replied with {}.", spnh.player.getNameForScoreboard(), correctChecksum, checksum);
 				panicMode = true;
 			}
 		}
