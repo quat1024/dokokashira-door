@@ -1,16 +1,41 @@
 package agency.highlysuspect.dokokashiradoor.util;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.entity.Entity;
+import net.minecraft.network.RegistryByteBuf;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.codec.PacketCodecs;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.event.GameEvent;
 
+import java.util.function.Function;
+
 public class DoorUtil {
+	public static final Codec<DoorBlock> DOOR_CODEC = Registries.BLOCK.getCodec().comapFlatMap(block -> {
+		if (block instanceof DoorBlock door) {
+			return DataResult.success(door);
+		}
+
+		return DataResult.error(() -> "Block " + block + " is not instanceof DoorBlock");
+	}, Function.identity());
+
+	public static final PacketCodec<RegistryByteBuf, DoorBlock> DOOR_PACKET_CODEC = PacketCodecs.registryValue(RegistryKeys.BLOCK).xmap(block -> {
+		if (block instanceof DoorBlock door) {
+			return door;
+		}
+
+		throw new IllegalArgumentException("Block " + block + " is not instanceof DoorBlock");
+	}, Function.identity());
+
 	public static void sneakyOpenDoor(World world, BlockPos doorTop, BlockState topState) {
 		BlockState topOpen = topState.with(DoorBlock.OPEN, true);
 		BlockState bottomOpen = topOpen.cycle(DoorBlock.HALF);

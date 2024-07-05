@@ -1,8 +1,8 @@
 package agency.highlysuspect.dokokashiradoor.gateway;
 
 import com.mojang.serialization.Codec;
-import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.util.math.BlockPos;
@@ -26,7 +26,7 @@ public class GatewayMap extends Object2ObjectOpenHashMap<BlockPos, Gateway> {
 	
 	public static final Codec<GatewayMap> CODEC = Gateway.CODEC.listOf().xmap(GatewayMap::new, GatewayMap::toUnsortedList);
 
-	public static final PacketCodec<ByteBuf, GatewayMap> PACKET_CODEC = Gateway.PACKET_CODEC
+	public static final PacketCodec<RegistryByteBuf, GatewayMap> PACKET_CODEC = Gateway.PACKET_CODEC
 		.collect(PacketCodecs.toList())
 		.xmap(GatewayMap::new, GatewayMap::toUnsortedList);
 	

@@ -2,13 +2,13 @@ package agency.highlysuspect.dokokashiradoor.net.payload;
 
 import agency.highlysuspect.dokokashiradoor.Init;
 import agency.highlysuspect.dokokashiradoor.gateway.GatewayMap;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 
 public record DeltaGatewayUpdateS2CPayload(Identifier worldKeyId, GatewayMap additions, GatewayMap removals) implements CustomPayload {
-	public static final PacketCodec<PacketByteBuf, DeltaGatewayUpdateS2CPayload> CODEC = PacketCodec.tuple(
+	public static final PacketCodec<RegistryByteBuf, DeltaGatewayUpdateS2CPayload> CODEC = PacketCodec.tuple(
 		Identifier.PACKET_CODEC, DeltaGatewayUpdateS2CPayload::worldKeyId,
 		GatewayMap.PACKET_CODEC, DeltaGatewayUpdateS2CPayload::additions,
 		GatewayMap.PACKET_CODEC, DeltaGatewayUpdateS2CPayload::removals,

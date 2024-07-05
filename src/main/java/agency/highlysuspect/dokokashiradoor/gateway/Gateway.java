@@ -1,24 +1,23 @@
 package agency.highlysuspect.dokokashiradoor.gateway;
 
 import agency.highlysuspect.dokokashiradoor.Init;
+import agency.highlysuspect.dokokashiradoor.util.CodecCrap;
 import agency.highlysuspect.dokokashiradoor.util.DoorUtil;
-import io.netty.buffer.ByteBuf;
-import com.google.common.base.Preconditions;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.enums.DoorHinge;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
@@ -31,44 +30,20 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> frame, Direction facing) implements Comparable<Gateway> {
-	//For serialization
-	public record Proto(BlockPos doorTopPos, Identifier doorBlockId, List<Identifier> frameIds, Direction facing) {
-		public static final Codec<Proto> CODEC = RecordCodecBuilder.create(i -> i.group(
-			BlockPos.CODEC.fieldOf("pos").forGetter(Proto::doorTopPos),
-			Identifier.CODEC.fieldOf("doorBlock").forGetter(Proto::doorBlockId),
-			Identifier.CODEC.listOf().fieldOf("frame").forGetter(Proto::frameIds),
-			Direction.CODEC.fieldOf("facing").forGetter(Proto::facing)
-		).apply(i, Proto::new));
-		
-		public static Proto lift(Gateway gateway) {
-			Preconditions.checkNotNull(gateway);
-			
-			return new Proto(
-				gateway.doorTopPos,
-				Registries.BLOCK.getId(gateway.doorBlock),
-				gateway.frame.stream().map(Registries.BLOCK::getId).collect(Collectors.toList()),
-				gateway.facing
-			);
-		}
-		
-		public DataResult<Gateway> validateAndDrop() {
-			if(!Registries.BLOCK.containsId(doorBlockId)) return DataResult.error(() -> "No such block " + doorBlockId);
-			if(!(Registries.BLOCK.get(doorBlockId) instanceof DoorBlock doorBlock)) return DataResult.error(() -> "Block " + doorBlockId + " is not instanceof DoorBlock");
-			
-			if(frameIds.size() != 7) return DataResult.error(() -> "Expected 7 frame blocks, found " + frameIds.size());
-			List<Block> frameBlocks = new ArrayList<>();
-			for(Identifier id : frameIds) {
-				if(!Registries.BLOCK.containsId(id)) return DataResult.error(() -> "No such block " + id + " in frame");
-				frameBlocks.add(Registries.BLOCK.get(id));
-			}
-			
-			return DataResult.success(new Gateway(doorTopPos, doorBlock, frameBlocks, facing));
-		}
-	}
+	public static final Codec<Gateway> CODEC = RecordCodecBuilder.create(i -> i.group(
+		BlockPos.CODEC.fieldOf("pos").forGetter(Gateway::doorTopPos),
+		DoorUtil.DOOR_CODEC.fieldOf("doorBlock").forGetter(Gateway::doorBlock),
+		Registries.BLOCK.getCodec().listOf(7, 7).fieldOf("frame").forGetter(Gateway::frame),
+		Direction.CODEC.fieldOf("facing").forGetter(Gateway::facing)
+	).apply(i, Gateway::new));
 	
-	public static final Codec<Gateway> CODEC = Proto.CODEC.comapFlatMap(Proto::validateAndDrop, Proto::lift);
-	
-	public static final PacketCodec<ByteBuf, Gateway> PACKET_CODEC = PacketCodecs.codec(CODEC);
+	public static final PacketCodec<RegistryByteBuf, Gateway> PACKET_CODEC = PacketCodec.tuple(
+		BlockPos.PACKET_CODEC, Gateway::doorTopPos,
+		DoorUtil.DOOR_PACKET_CODEC, Gateway::doorBlock,
+		CodecCrap.validateMinLength(PacketCodecs.registryValue(RegistryKeys.BLOCK).collect(PacketCodecs.toList(7)), 7), Gateway::frame,
+		Direction.PACKET_CODEC, Gateway::facing,
+		Gateway::new
+	);
 	
 	public boolean equalButDifferentPositions(Gateway other) {
 		return (!doorTopPos.equals(other.doorTopPos)) &&
