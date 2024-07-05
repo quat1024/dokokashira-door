@@ -18,7 +18,6 @@ import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -194,8 +193,8 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 			//On the server, to *other players*, play the door opening sound from both doors.
 			if(world instanceof ServerWorld sworld) {
 				//playSound with a PlayerEntity argument skips that player
-				sworld.playSound(player, departureGateway.doorTopPos, SoundEvents.BLOCK_WOODEN_DOOR_OPEN, SoundCategory.BLOCKS, 1f, world.random.nextFloat() * 0.1f + 0.9f);
-				sworld.playSound(player,             this.doorTopPos, SoundEvents.BLOCK_WOODEN_DOOR_OPEN, SoundCategory.BLOCKS, 1f, world.random.nextFloat() * 0.1f + 0.9f);
+				sworld.playSound(player, departureGateway.doorTopPos, DoorUtil.getOpenSound(departureDoorState), SoundCategory.BLOCKS, 1f, world.random.nextFloat() * 0.1f + 0.9f);
+				sworld.playSound(player,             this.doorTopPos, DoorUtil.getOpenSound(arrivalDoorState), SoundCategory.BLOCKS, 1f, world.random.nextFloat() * 0.1f + 0.9f);
 			}
 		}
 	}

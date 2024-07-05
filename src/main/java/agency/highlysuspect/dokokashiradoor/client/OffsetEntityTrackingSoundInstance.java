@@ -1,12 +1,13 @@
 package agency.highlysuspect.dokokashiradoor.client;
 
 import agency.highlysuspect.dokokashiradoor.Init;
+import agency.highlysuspect.dokokashiradoor.util.DoorUtil;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.sound.MovingSoundInstance;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
@@ -25,11 +26,11 @@ public class OffsetEntityTrackingSoundInstance extends MovingSoundInstance {
 		updatePos();
 	}
 	
-	public static OffsetEntityTrackingSoundInstance doorOpen(PlayerEntity opener, BlockPos doorPos, Vec3d offset, Random random) {
+	public static OffsetEntityTrackingSoundInstance doorOpen(PlayerEntity opener, BlockPos doorPos, BlockState doorState, Vec3d offset, Random random) {
 		Vec3d offset2 = Vec3d.ofCenter(doorPos).subtract(opener.getPos());
 		
 		return new OffsetEntityTrackingSoundInstance(
-			SoundEvents.BLOCK_WOODEN_DOOR_OPEN,
+			DoorUtil.getOpenSound(doorState),
 			SoundCategory.BLOCKS,
 			random,
 			1f, //volume

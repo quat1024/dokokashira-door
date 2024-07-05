@@ -4,6 +4,8 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.entity.Entity;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.event.GameEvent;
@@ -33,5 +35,13 @@ public class DoorUtil {
 	
 	public static void sneakySetBlockstate(World world, BlockPos pos, BlockState state) {
 		world.setBlockState(pos, state, Block.NOTIFY_LISTENERS);
+	}
+
+	public static SoundEvent getOpenSound(BlockState state) {
+		if (state.getBlock() instanceof DoorBlock door) {
+			return door.getBlockSetType().doorOpen();
+		}
+
+		return SoundEvents.BLOCK_WOODEN_DOOR_OPEN;
 	}
 }

@@ -58,7 +58,7 @@ public class ClientDoorTp {
 		destination.arrive(world, thisGateway, player);
 		
 		//4. Play the special clientside door-opening sound. This one follows the player around as they teleport.
-		MinecraftClient.getInstance().getSoundManager().play(OffsetEntityTrackingSoundInstance.doorOpen(player, destination.doorTopPos(), null, world.random));
+		MinecraftClient.getInstance().getSoundManager().play(OffsetEntityTrackingSoundInstance.doorOpen(player, destination.doorTopPos(), destination.doorBlock().getDefaultState(), null, world.random));
 		
 		//5. Suppress sending a player-use-block packet.
 		//This prevents the door from opening normally on the server.
