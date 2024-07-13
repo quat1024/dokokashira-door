@@ -36,8 +36,5 @@
 		"fabric-resource-loader-v0": "*",
     "minecraft": "1.21.x",
     "java": ">=21"
-  },
-  "suggests": {
-    "that-you-switch-to-quilt-as-soon-as-its-available": "*"
   }
 }
