@@ -12,6 +12,7 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.block.WireOrientation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -37,7 +38,7 @@ public class DoorBlockMixin extends Block {
 		if(world.isClient() && player != null && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER && !state.get(DoorBlock.OPEN)) {
 			boolean worked = ClientDoorTp.playerUseDoorClient(world, pos, state, player);
 			if(worked) {
-				cir.setReturnValue(ActionResult.success(true));
+				cir.setReturnValue(ActionResult.SUCCESS);
 			}
 		}
 		
@@ -48,7 +49,7 @@ public class DoorBlockMixin extends Block {
 		method = "neighborUpdate",
 		at = @At("HEAD")
 	)
-	private void whenNeighborUpdate(BlockState state, World world, BlockPos pos, Block block, BlockPos fromPos, boolean notify, CallbackInfo ci) {
+	private void whenNeighborUpdate(BlockState state, World world, BlockPos pos, Block block, WireOrientation wireOrientation, boolean notify, CallbackInfo ci) {
 		if(world instanceof ServerWorld sworld && state.get(DoorBlock.HALF) == DoubleBlockHalf.UPPER) {
 			GatewayPersistentState.getFor(sworld).helloDoor(sworld, pos.toImmutable());
 		}
