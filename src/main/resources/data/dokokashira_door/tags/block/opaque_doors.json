@@ -6,6 +6,354 @@
 		"minecraft:dark_oak_door",
 		"minecraft:mangrove_door",
 		"minecraft:crimson_door",
-		"minecraft:warped_door"
+		"minecraft:warped_door",
+		{
+			"id": "armistice:armisteel_door",
+			"required": false
+		},
+		{
+			"id": "biomesoplenty:empyreal_door",
+			"required": false
+		},
+		{
+			"id": "biomesoplenty:fir_door",
+			"required": false
+		},
+		{
+			"id": "biomesoplenty:maple_door",
+			"required": false
+		},
+		{
+			"id": "biomesoplenty:pine_door",
+			"required": false
+		},
+		{
+			"id": "biomesoplenty:redwood_door",
+			"required": false
+		},
+		{
+			"id": "biomeswevegone:aspen_door",
+			"required": false
+		},
+		{
+			"id": "biomeswevegone:ebony_door",
+			"required": false
+		},
+		{
+			"id": "biomeswevegone:holly_door",
+			"required": false
+		},
+		{
+			"id": "biomeswevegone:jacaranda_door",
+			"required": false
+		},
+		{
+			"id": "biomeswevegone:pine_door",
+			"required": false
+		},
+		{
+			"id": "biomeswevegone:sakura_door",
+			"required": false
+		},
+		{
+			"id": "biomeswevegone:skyris_door",
+			"required": false
+		},
+		{
+			"id": "blockus:charred_door",
+			"required": false
+		},
+		{
+			"id": "blockus:paper_door",
+			"required": false
+		},
+		{
+			"id": "blockus:stone_door",
+			"required": false
+		},
+		{
+			"id": "blockus:white_oak_door",
+			"required": false
+		},
+		{
+			"id": "bountifulfares:ceramic_door",
+			"required": false
+		},
+		{
+			"id": "bountifulfares:hoary_door",
+			"required": false
+		},
+		{
+			"id": "butchercraft:barn_wood_door_item",
+			"required": false
+		},
+		{
+			"id": "buzzier_bees:honeycomb_door",
+			"required": false
+		},
+		{
+			"id": "colorfulazaleas:azule_azalea_door",
+			"required": false
+		},
+		{
+			"id": "colorfulazaleas:fiss_azalea_door",
+			"required": false
+		},
+		{
+			"id": "colorfulazaleas:roze_azalea_door",
+			"required": false
+		},
+		{
+			"id": "colorfulazaleas:tecal_azalea_door",
+			"required": false
+		},
+		{
+			"id": "colorfulazaleas:titanium_azalea_door",
+			"required": false
+		},
+		{
+			"id": "colorfulazaleas:walnut_azalea_door",
+			"required": false
+		},
+		{
+			"id": "deep_aether:roseroot_door",
+			"required": false
+		},
+		{
+			"id": "deep_aether:yagroot_door",
+			"required": false
+		},
+		{
+			"id": "enderscape:celestial_door",
+			"required": false
+		},
+		{
+			"id": "enderscape:murublight_door",
+			"required": false
+		},
+		{
+			"id": "eternal_starlight:lunar_door",
+			"required": false
+		},
+		{
+			"id": "eternal_starlight:northland_door",
+			"required": false
+		},
+		{
+			"id": "eternal_starlight:scarlet_door",
+			"required": false
+		},
+		{
+			"id": "extradelight:blood_chocolate_door",
+			"required": false
+		},
+		{
+			"id": "extradelight:dark_chocolate_door",
+			"required": false
+		},
+		{
+			"id": "extradelight:milk_chocolate_door",
+			"required": false
+		},
+		{
+			"id": "extradelight:white_chocolate_door",
+			"required": false
+		},
+		{
+			"id": "forbidden_arcanus:arcane_edelwood_door",
+			"required": false
+		},
+		{
+			"id": "garnished:sepia_door",
+			"required": false
+		},
+		{
+			"id": "hexerei:polished_mahogany_door",
+			"required": false
+		},
+		{
+			"id": "hexerei:polished_willow_door",
+			"required": false
+		},
+		{
+			"id": "hexerei:polished_witch_hazel_door",
+			"required": false
+		},
+		{
+			"id": "hexerei:willow_door",
+			"required": false
+		},
+		{
+			"id": "immersiveengineering:steel_door",
+			"required": false
+		},
+		{
+			"id": "immersiveengineering:treated_door_framed",
+			"required": false
+		},
+		{
+			"id": "integrateddynamics:menril_door",
+			"required": false
+		},
+		{
+			"id": "minecraft:birch_door",
+			"required": false
+		},
+		{
+			"id": "minecraft:crimson_door",
+			"required": false
+		},
+		{
+			"id": "minecraft:dark_oak_door",
+			"required": false
+		},
+		{
+			"id": "minecraft:mangrove_door",
+			"required": false
+		},
+		{
+			"id": "minecraft:spruce_door",
+			"required": false
+		},
+		{
+			"id": "minecraft:warped_door",
+			"required": false
+		},
+		{
+			"id": "occultism:otherplanks_door",
+			"required": false
+		},
+		{
+			"id": "oxide:heavy_iron_door",
+			"required": false
+		},
+		{
+			"id": "oxide:rusted_heavy_iron_door",
+			"required": false
+		},
+		{
+			"id": "oxide:waxed_heavy_iron_door",
+			"required": false
+		},
+		{
+			"id": "oxide:waxed_rusted_heavy_iron_door",
+			"required": false
+		},
+		{
+			"id": "oxide:waxed_weathered_heavy_iron_door",
+			"required": false
+		},
+		{
+			"id": "oxide:weathered_heavy_iron_door",
+			"required": false
+		},
+		{
+			"id": "plantsjunk:rotten_door",
+			"required": false
+		},
+		{
+			"id": "spectrum:chestnut_noxwood_door",
+			"required": false
+		},
+		{
+			"id": "spectrum:ebony_noxwood_door",
+			"required": false
+		},
+		{
+			"id": "spectrum:ivory_noxwood_door",
+			"required": false
+		},
+		{
+			"id": "spectrum:slate_noxwood_door",
+			"required": false
+		},
+		{
+			"id": "spectrum:weeping_gala_door",
+			"required": false
+		},
+		{
+			"id": "terrestria:hemlock_door",
+			"required": false
+		},
+		{
+			"id": "terrestria:rubber_door",
+			"required": false
+		},
+		{
+			"id": "terrestria:sakura_door",
+			"required": false
+		},
+		{
+			"id": "terrestria:yucca_palm_door",
+			"required": false
+		},
+		{
+			"id": "tflostblocks:towerwood_door",
+			"required": false
+		},
+		{
+			"id": "thaumon:ancient_stone_door",
+			"required": false
+		},
+		{
+			"id": "tropicraft:mahogany_door",
+			"required": false
+		},
+		{
+			"id": "tropicraft:palm_door",
+			"required": false
+		},
+		{
+			"id": "tropicraft:thatch_door",
+			"required": false
+		},
+		{
+			"id": "tuttasdoors:acacia_discrete_door",
+			"required": false
+		},
+		{
+			"id": "tuttasdoors:bamboo_discrete_door",
+			"required": false
+		},
+		{
+			"id": "tuttasdoors:cherry_discrete_door",
+			"required": false
+		},
+		{
+			"id": "tuttasdoors:jungle_discrete_door",
+			"required": false
+		},
+		{
+			"id": "tuttasdoors:oak_discrete_door",
+			"required": false
+		},
+		{
+			"id": "twilightforest:canopy_door",
+			"required": false
+		},
+		{
+			"id": "twilightforest:dark_door",
+			"required": false
+		},
+		{
+			"id": "twilightforest:mangrove_door",
+			"required": false
+		},
+		{
+			"id": "twilightforest:mining_door",
+			"required": false
+		},
+		{
+			"id": "twilightforest:twilight_oak_door",
+			"required": false
+		},
+		{
+			"id": "unicopia:stable_door",
+			"required": false
+		},
+		{
+			"id": "witchery:hawthorn_door",
+			"required": false
+		}
 	]
 }
