@@ -61,7 +61,7 @@ public class DokoServerPlayNetworkHandler {
 	private int inFlightRandomSeeds = 0;
 	
 	public void tick() {
-		ServerWorld world = spnh.player.getWorld();
+		ServerWorld world = spnh.player.getEntityWorld();
 		Profilers.get().push("DokoServerPlayNetworkHandler for " + spnh.player.getNameForScoreboard());
 		tick0(world);
 		Profilers.get().pop();

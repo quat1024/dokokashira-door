@@ -16,8 +16,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(WorldRenderer.class)
 public class WorldRendererMixin {
 	@Inject(method = "render", at = @At("HEAD"))
-	private void smuggleMatrices(ObjectAllocator allocator, RenderTickCounter tickCounter, boolean renderBlockOutline, Camera camera, Matrix4f positionMatrix, Matrix4f projectionMatrix, GpuBufferSlice fog, Vector4f fogColor, boolean shouldRenderSky, CallbackInfo ci) {
-		MatrixCache.PROJECTION_MATRIX = projectionMatrix;
+	private void smuggleMatrices(ObjectAllocator allocator, RenderTickCounter tickCounter, boolean renderBlockOutline, Camera camera, Matrix4f positionMatrix, Matrix4f currentFovProjectionMatrix, Matrix4f maxFovProjectionMatrix, GpuBufferSlice fog, Vector4f fogColor, boolean shouldRenderSky, CallbackInfo ci) {
+		MatrixCache.PROJECTION_MATRIX = currentFovProjectionMatrix;
 		MatrixCache.VIEW_MATRIX = positionMatrix;
 	}
 }
