@@ -12,6 +12,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.profiler.Profilers;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.chunk.ChunkManager;
 
@@ -48,19 +49,19 @@ public class GatewayPersistentState extends PersistentState {
 	
 	public void tick(ServerWorld world) {
 		if(world.getTime() % 5 == 0) {
-			world.getProfiler().push("dokodoor tick");
+			Profilers.get().push("dokodoor tick");
 			
 			ChunkManager cm = world.getChunkManager();
 			
 			upkeepDoors(world, cm);
 			upkeepGateways(world, cm);
 			
-			world.getProfiler().pop();
+			Profilers.get().pop();
 		}
 	}
 	
 	private void upkeepDoors(ServerWorld world, ChunkManager cm) {
-		world.getProfiler().swap("upkeepDoors");
+		Profilers.get().swap("upkeepDoors");
 		knownDoors.removeIf(pos -> {
 			if(!Util.isPositionAndNeighborsLoaded(cm, pos)) return false;
 			
@@ -80,7 +81,7 @@ public class GatewayPersistentState extends PersistentState {
 	}
 	
 	private void upkeepGateways(ServerWorld world, ChunkManager cm) {
-		world.getProfiler().swap("upkeepGateways");
+		Profilers.get().swap("upkeepGateways");
 		//This sucks a lot, sorry.
 		//I might modify the map while iterating over it, so I copy all the keys.
 		//I don't think fastutil maps throw CMEs in the name of performance, and I don't wanna find out what happens.

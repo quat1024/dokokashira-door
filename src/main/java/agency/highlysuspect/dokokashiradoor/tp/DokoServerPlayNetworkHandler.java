@@ -14,6 +14,7 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.profiler.Profilers;
 import net.minecraft.world.World;
 
 import java.util.HashMap;
@@ -61,9 +62,9 @@ public class DokoServerPlayNetworkHandler {
 	
 	public void tick() {
 		ServerWorld world = spnh.player.getServerWorld();
-		world.getProfiler().push("DokoServerPlayNetworkHandler for " + spnh.player.getNameForScoreboard());
+		Profilers.get().push("DokoServerPlayNetworkHandler for " + spnh.player.getNameForScoreboard());
 		tick0(world);
-		world.getProfiler().pop();
+		Profilers.get().pop();
 	}
 	
 	private void tick0(ServerWorld world) {
