@@ -8,15 +8,15 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.enums.DoubleBlockHalf;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.profiler.Profilers;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.PersistentStateType;
 import net.minecraft.world.chunk.ChunkManager;
 
 import java.util.ArrayList;
+import java.util.function.Function;
 
 public class GatewayPersistentState extends PersistentState {
 	public GatewayPersistentState() {
@@ -27,14 +27,22 @@ public class GatewayPersistentState extends PersistentState {
 	private final GatewayMap gateways;
 	private int gatewayChecksum;
 	private final ObjectOpenHashSet<BlockPos> knownDoors;
-	
-	private static final PersistentState.Type<GatewayPersistentState> TYPE = new PersistentState.Type<>(GatewayPersistentState::new, GatewayPersistentState::fromNbt, null);
 
 	public static final Codec<GatewayPersistentState> CODEC = RecordCodecBuilder.create(i -> i.group(
 		GatewayMap.CODEC.fieldOf("gateways").forGetter(gps -> gps.gateways),
 		CodecCrap.objectOpenHashSetCodec(BlockPos.CODEC).fieldOf("knownDoors").forGetter(gps -> gps.knownDoors)
 	).apply(i, GatewayPersistentState::new));
-	
+
+	public static final Codec<GatewayPersistentState> VERSIONED_CODEC = RecordCodecBuilder.create(i -> i.group(
+		CODEC.fieldOf("Gateways").forGetter(Function.identity()),
+		//TODO: Switch on dataVersion when there are changes to the format.
+		// Nooooot worth it to make a whole DFU-based updater thingie.
+		// Just keep the old Codecs lying around.
+		Codec.INT.optionalFieldOf("DokoDataVersion", 0).forGetter(gps -> 1)
+	).apply(i, (gps, dataVersion) -> gps));
+
+	private static final PersistentStateType<GatewayPersistentState> TYPE = new PersistentStateType<>("dokokashira-doors", GatewayPersistentState::new, VERSIONED_CODEC, null);
+
 	//Deserialization constructor
 	private GatewayPersistentState(GatewayMap gateways, ObjectOpenHashSet<BlockPos> knownDoors) {
 		this.gateways = gateways;
@@ -44,7 +52,7 @@ public class GatewayPersistentState extends PersistentState {
 	}
 	
 	public static GatewayPersistentState getFor(ServerWorld world) {
-		return world.getPersistentStateManager().getOrCreate(TYPE, "dokokashira-doors");
+		return world.getPersistentStateManager().getOrCreate(TYPE);
 	}
 	
 	public void tick(ServerWorld world) {
@@ -136,22 +144,6 @@ public class GatewayPersistentState extends PersistentState {
 				putGateway(fromWorld);
 			}
 		}
-	}
-	
-	//Serialization stuff
-	@Override
-	public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		nbt.put("Gateways", CodecCrap.writeNbt(CODEC, this));
-		nbt.putInt("DokoDataVersion", 1);
-		return nbt;
-	}
-	
-	public static GatewayPersistentState fromNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		int dataVersion = nbt.contains("DokoDataVersion") ? nbt.getInt("DokoDataVersion") : 0;
-		//TODO: Switch on dataVersion when there are changes to the format.
-		// Nooooot worth it to make a whole DFU-based updater thingie.
-		// Just keep the old Codecs lying around.
-		return CodecCrap.readNbtAllowPartial(CODEC, nbt.get("Gateways"));
 	}
 	
 	public GatewayMap getAllGateways() {

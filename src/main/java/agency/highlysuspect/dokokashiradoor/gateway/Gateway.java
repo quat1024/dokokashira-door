@@ -139,9 +139,9 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		player.resetPosition(); //sets prevX/Y/Z, prevYaw, etc. Makes the renderer look nicer & no headsnap
 		//misc yaws, prevents funky head snaps and stuff
 		player.bodyYaw = player.bodyYaw + yawAdd;
-		player.prevBodyYaw = player.bodyYaw;
+		player.lastBodyYaw = player.bodyYaw;
 		player.headYaw = player.headYaw + yawAdd;
-		player.prevHeadYaw = player.headYaw;
+		player.lastHeadYaw = player.headYaw;
 		
 		if(player instanceof ServerPlayerEntity splayer) {
 			//Make the ServerPlayNetworkHandler agree with that position. Makes you not rubberband
