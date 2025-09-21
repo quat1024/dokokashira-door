@@ -27,7 +27,7 @@ public class ServerDoorTp {
 	}
 	
 	private static boolean confirmDoorTeleport0(BlockPos leftFromPos, BlockPos destPos, ServerPlayerEntity player) {
-		ServerWorld world = player.getServerWorld();
+		ServerWorld world = player.getWorld();
 		GatewayPersistentState gps = GatewayPersistentState.getFor(world);
 		
 		//Too far away
