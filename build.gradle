@@ -1,14 +1,14 @@
 plugins {
-	id 'fabric-loom' version '1.7.+'
+	id 'fabric-loom' version '1.11.+'
 	id 'maven-publish'
 }
 
-sourceCompatibility = JavaVersion.VERSION_21
-targetCompatibility = JavaVersion.VERSION_21
-
-archivesBaseName = "${project.archives_base_name}-${project.minecraft_version}"
 version = project.mod_version
 group = project.maven_group
+
+base {
+	archivesName = "${project.archives_base_name}-${project.minecraft_version}"
+}
 
 repositories {
 	maven {
@@ -79,6 +79,9 @@ java {
 	// if it is present.
 	// If you remove this line, sources will not be generated.
 	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
 }
 
 jar {

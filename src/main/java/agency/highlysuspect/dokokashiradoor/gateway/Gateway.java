@@ -21,6 +21,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.profiler.Profilers;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -60,7 +61,7 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 	}
 	
 	public static @Nullable Gateway readFromWorld(World world, BlockPos doorTopPosMut) {
-		world.getProfiler().visit("Gateway#readFromWorld");
+		Profilers.get().visit("Gateway#readFromWorld");
 		
 		BlockPos doorTopPos = doorTopPosMut.toImmutable();
 		
