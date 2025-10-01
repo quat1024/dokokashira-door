@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class ServerDoorTp {
 	public static void confirmDoorTeleport(BlockPos leftFromPos, BlockPos destPos, ServerPlayerEntity player) {
-		Vec3d oldPos = player.getPos();
+		Vec3d oldPos = player.getEntityPos();
 		float oldYaw = player.getYaw();
 		float oldPitch = player.getPitch();
 		
@@ -27,11 +27,11 @@ public class ServerDoorTp {
 	}
 	
 	private static boolean confirmDoorTeleport0(BlockPos leftFromPos, BlockPos destPos, ServerPlayerEntity player) {
-		ServerWorld world = player.getServerWorld();
+		ServerWorld world = player.getEntityWorld();
 		GatewayPersistentState gps = GatewayPersistentState.getFor(world);
 		
 		//Too far away
-		if(player.getPos().squaredDistanceTo(Vec3d.ofBottomCenter(leftFromPos)) > 6 * 6) return false;
+		if(player.getEntityPos().squaredDistanceTo(Vec3d.ofBottomCenter(leftFromPos)) > 6 * 6) return false;
 		
 		//Find the gateway at this position
 		@SuppressWarnings("SuspiciousNameCombination") //leftFromPos - Spurious warning, but good effort intellij

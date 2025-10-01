@@ -21,6 +21,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.profiler.Profilers;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -60,7 +61,7 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 	}
 	
 	public static @Nullable Gateway readFromWorld(World world, BlockPos doorTopPosMut) {
-		world.getProfiler().visit("Gateway#readFromWorld");
+		Profilers.get().visit("Gateway#readFromWorld");
 		
 		BlockPos doorTopPos = doorTopPosMut.toImmutable();
 		
@@ -106,7 +107,7 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 	
 	public void arrive(World world, Gateway departureGateway, PlayerEntity player) {
 		//Find the vector from (current door -> player position)
-		Vec3d currentDifference = player.getPos().subtract(Vec3d.ofBottomCenter(departureGateway.doorTopPos));
+		Vec3d currentDifference = player.getEntityPos().subtract(Vec3d.ofBottomCenter(departureGateway.doorTopPos));
 		Vec3d velocity = player.getVelocity();
 		float yawAdd = 0;
 		
@@ -138,9 +139,9 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 		player.resetPosition(); //sets prevX/Y/Z, prevYaw, etc. Makes the renderer look nicer & no headsnap
 		//misc yaws, prevents funky head snaps and stuff
 		player.bodyYaw = player.bodyYaw + yawAdd;
-		player.prevBodyYaw = player.bodyYaw;
+		player.lastBodyYaw = player.bodyYaw;
 		player.headYaw = player.headYaw + yawAdd;
-		player.prevHeadYaw = player.headYaw;
+		player.lastHeadYaw = player.headYaw;
 		
 		if(player instanceof ServerPlayerEntity splayer) {
 			//Make the ServerPlayNetworkHandler agree with that position. Makes you not rubberband
