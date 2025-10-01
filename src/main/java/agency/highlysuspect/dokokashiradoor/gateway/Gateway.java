@@ -107,7 +107,7 @@ public record Gateway(BlockPos doorTopPos, DoorBlock doorBlock, List<Block> fram
 	
 	public void arrive(World world, Gateway departureGateway, PlayerEntity player) {
 		//Find the vector from (current door -> player position)
-		Vec3d currentDifference = player.getPos().subtract(Vec3d.ofBottomCenter(departureGateway.doorTopPos));
+		Vec3d currentDifference = player.getEntityPos().subtract(Vec3d.ofBottomCenter(departureGateway.doorTopPos));
 		Vec3d velocity = player.getVelocity();
 		float yawAdd = 0;
 		

@@ -27,7 +27,7 @@ public class OffsetEntityTrackingSoundInstance extends MovingSoundInstance {
 	}
 	
 	public static OffsetEntityTrackingSoundInstance doorOpen(PlayerEntity opener, BlockPos doorPos, BlockState doorState, Vec3d offset, Random random) {
-		Vec3d offset2 = Vec3d.ofCenter(doorPos).subtract(opener.getPos());
+		Vec3d offset2 = Vec3d.ofCenter(doorPos).subtract(opener.getEntityPos());
 		
 		return new OffsetEntityTrackingSoundInstance(
 			DoorUtil.getOpenSound(doorState),
